@@ -1,0 +1,5 @@
+include ':app'
+include ':sandhook'
+include ':xposed-bridge'
+
+rootProject.name='Dreamland'
