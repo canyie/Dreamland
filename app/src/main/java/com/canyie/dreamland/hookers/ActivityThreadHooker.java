@@ -1,39 +1,39 @@
 package com.canyie.dreamland.hookers;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.nfc.Tag;
 import android.util.Log;
 
 import com.canyie.dreamland.core.Dreamland;
 import com.swift.sandhook.SandHook;
+import com.swift.sandhook.annotation.HookClass;
 import com.swift.sandhook.annotation.HookMethod;
 import com.swift.sandhook.annotation.HookMethodBackup;
 import com.swift.sandhook.annotation.HookReflectClass;
 import com.swift.sandhook.annotation.MethodParams;
 import com.swift.sandhook.annotation.MethodReflectParams;
-import com.swift.sandhook.annotation.SkipParamCheck;
 import com.swift.sandhook.annotation.ThisObject;
 
 import java.lang.reflect.Method;
 
-import de.robv.android.xposed.XC_MethodHook;
 import mirror.android.app.ActivityThread;
 
 /**
  * Created by canyie on 2019/11/12.
  */
 @SuppressWarnings("unused")
-@HookReflectClass("android.app.ActivityThread")
+@HookReflectClass(ActivityThread.NAME)
 public final class ActivityThreadHooker {
-    @HookMethodBackup("systemMain")
+    /*@HookMethodBackup("systemMain")
     @MethodParams({})
-    private static Method systemMainBackup;
+    private static Method systemMainBackup;*/
 
     @HookMethodBackup("handleBindApplication")
     @MethodReflectParams("android.app.ActivityThread$AppBindData")
     private static Method handleBindApplicationBackup;
 
-    @HookMethod("systemMain")
+    /*@HookMethod("systemMain")
     @MethodParams({})
     public static Object systemMain() throws Throwable {
         Object result = SandHook.callOriginByBackup(systemMainBackup, null);
@@ -58,7 +58,7 @@ public final class ActivityThreadHooker {
             }
         }
         return result;
-    }
+    }*/
 
     @HookMethod("handleBindApplication")
     @MethodReflectParams("android.app.ActivityThread$AppBindData")
@@ -66,10 +66,12 @@ public final class ActivityThreadHooker {
         try {
             if (!Dreamland.isSystem) {
                 Dreamland.processName = ActivityThread.AppBindData.processName.getValue(appBindData);
+                ApplicationInfo appInfo = ActivityThread.AppBindData.appInfo.getValue(appBindData);
+                Dreamland.packageName = appInfo.packageName;
             }
         } catch(Throwable e) {
             try {
-                Log.e(Dreamland.TAG, "Failed to set processName", e);
+                Log.e(Dreamland.TAG, "Failed to init app infos", e);
             } catch (Throwable ignored) {
             }
         }

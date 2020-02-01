@@ -12,8 +12,7 @@
 namespace dreamland {
     class Dreamland {
     public:
-        static constexpr int VERSION = 3;
-
+        static constexpr int VERSION = 1;
         static bool ShouldDisable();
         static bool Initialize(JNIEnv *env);
         static Dreamland* GetInstance() {
@@ -26,7 +25,7 @@ namespace dreamland {
             return instance;
         }
 
-        static bool OnAppProcessStart(jstring java_nice_name);
+        static bool OnAppProcessStart();
         static bool OnSystemServerStart();
 
         JavaVM *GetJavaVM() {
@@ -48,7 +47,7 @@ namespace dreamland {
         jmethodID onAppProcessStart;
 
         static constexpr const char *DREAMLAND_BASE = "/data/dreamland/";
-        static constexpr const char *DREAMLAND_CORE_JAR = "/data/dreamland/core.apk";
+        static constexpr const char *DREAMLAND_CORE_JAR = "/system/framework/dreamland.jar";
         static constexpr const char *DREAMLAND_FLAG_DISABLE_FILE = "/data/dreamland/disable";
         DISALLOW_COPY_AND_ASSIGN(Dreamland);
     };

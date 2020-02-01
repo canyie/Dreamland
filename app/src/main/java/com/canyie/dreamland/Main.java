@@ -2,6 +2,8 @@ package com.canyie.dreamland;
 
 import android.util.Log;
 
+import androidx.annotation.Keep;
+
 import com.canyie.dreamland.core.Dreamland;
 import com.canyie.dreamland.hookers.ActivityThreadHooker;
 import com.canyie.dreamland.hookers.ContextImplHooker;
@@ -13,8 +15,7 @@ import com.swift.sandhook.SandHookConfig;
 /**
  * Created by canyie on 2019/11/12.
  */
-@SuppressWarnings("unused")
-public final class Main {
+@SuppressWarnings("unused") @Keep public final class Main {
     public static int init() {
         try {
             SandHookConfig.DEBUG = true;
@@ -26,7 +27,7 @@ public final class Main {
             } catch (Throwable ignored) {
             }
         }
-        return -1;
+        return 1;
     }
 
 
@@ -48,13 +49,12 @@ public final class Main {
         }
     }
 
-    public static void onAppProcessStart(String packageName) {
+    public static void onAppProcessStart() {
         try {
             HiddenApis.exemptAll();
             // TODO: Only white-listed applications are allowed to access the hidden APIs.
             Dreamland.isSystem = false;
-            Dreamland.packageName = packageName;
-            Dreamland.processName = packageName; // Override by ActivityThreadHooker
+            Dreamland.getInstance().initProperties();
             SandHook.addHookClass(ActivityThreadHooker.class, ContextImplHooker.class, LoadedApkHooker.class);
         } catch(Throwable e) {
             try {

@@ -43,7 +43,6 @@ int security_getenforce(void) {
         return -1;
     }
 
-
     memset(buf, 0, sizeof buf);
     ret = read(fd, buf, sizeof buf - 1);
     close(fd);

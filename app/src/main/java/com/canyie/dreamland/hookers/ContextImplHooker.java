@@ -34,9 +34,7 @@ public final class ContextImplHooker {
                     Dreamland d = Dreamland.getInstance();
                     d.initContext((Context) result);
                     contextReady = true;
-                    if (d.canLoadXposedModules()) {
-                        d.loadXposedModules();
-                    }
+                    d.ready();
                 } else {
                     Log.e(Dreamland.TAG, "ContextImpl.createAppContext() returned " + result);
                 }

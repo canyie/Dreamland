@@ -3,76 +3,79 @@ package com.canyie.dreamland.utils.reflect;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Constructor;
-
 import com.canyie.dreamland.utils.Preconditions;
+
+import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 
 /**
  * Created by canyie on 2019/10/24.
  */
-@SuppressWarnings({"unchecked", "unused"})
+@SuppressWarnings({"unchecked", "unused", "WeakerAccess"})
 public final class Reflection<T> {
     @NonNull
-    private Class<T> klass;
+    private Class<T> clazz;
 
-    private Reflection(@NonNull Class<T> klass) {
-        this.klass = klass;
+    private Reflection(@NonNull Class<T> clazz) {
+        this.clazz = clazz;
     }
 
-    public static Reflection on(@NonNull String name) {
+    public static Reflection<?> on(@NonNull String name) {
         return new Reflection(findClass(name));
     }
 
-    public static Reflection on(@NonNull String name, @NonNull ClassLoader loader) {
+    public static Reflection<?> on(@NonNull String name, @NonNull ClassLoader loader) {
         return new Reflection(findClass(name, loader));
     }
 
-    public static Reflection on(@NonNull Class<?> klass) {
-        Preconditions.checkNotNull(klass, "klass == null");
-        return new Reflection(klass);
+    public static <T> Reflection<T> on(@NonNull Class<T> clazz) {
+        Preconditions.checkNotNull(clazz, "clazz == null");
+        return new Reflection(clazz);
     }
 
     @NonNull
-    public Class<?> unwrap() {
-        return klass;
+    public Class<T> unwrap() {
+        return clazz;
     }
 
-    public static WrappedMethod wrap(@NonNull Method method) {
+    public static MethodWrapper wrap(@NonNull Method method) {
         Preconditions.checkNotNull(method, "method == null");
-        return new WrappedMethod(method);
+        return new MethodWrapper(method);
     }
 
-    public WrappedMethod method(@NonNull String name, @NonNull Class<?>... parameterTypes) {
-        return method(klass, name, parameterTypes);
+    public MethodWrapper method(@NonNull String name, @NonNull Class<?>... parameterTypes) {
+        return method(clazz, name, parameterTypes);
     }
 
-    public static WrappedMethod method(@NonNull Class<?> klass, @NonNull String name, @Nullable Class<?>... parameterTypes) {
-        return wrap(getMethod(klass, name, parameterTypes));
+    public static MethodWrapper method(@NonNull Class<?> clazz, @NonNull String name, @Nullable Class<?>... parameterTypes) {
+        return wrap(getMethod(clazz, name, parameterTypes));
     }
 
-    public static WrappedField wrap(@NonNull Field field) {
+    public static FieldWrapper wrap(@NonNull Field field) {
         Preconditions.checkNotNull(field, "field == null");
-        return new WrappedField(field);
+        return new FieldWrapper(field);
     }
 
-    public WrappedField field(@NonNull String name) {
-        return field(klass, name);
+    public FieldWrapper field(@NonNull String name) {
+        return field(clazz, name);
     }
 
-    public static WrappedField field(@NonNull Class<?> klass, @NonNull String name) {
-        return wrap(getField(klass, name));
+    public static FieldWrapper field(@NonNull Class<?> clazz, @NonNull String name) {
+        return wrap(getField(clazz, name));
     }
 
-    public static <T> WrappedConstructor<T> wrap(@NonNull Constructor<T> constructor) {
+    public static <T> ConstructorWrapper<T> wrap(@NonNull Constructor<T> constructor) {
         Preconditions.checkNotNull(constructor, "constructor == null");
-        return new WrappedConstructor<>(constructor);
+        return new ConstructorWrapper<>(constructor);
     }
 
-    public WrappedConstructor<T> constructor(@Nullable Class<?>... parameterTypes) {
-        return wrap(getConstructor(klass, parameterTypes));
+    public ConstructorWrapper<T> constructor(@Nullable Class<?>... parameterTypes) {
+        return wrap(getConstructor(clazz, parameterTypes));
     }
 
     @Nullable
@@ -112,10 +115,10 @@ public final class Reflection<T> {
     }
 
     @NonNull
-    public static Method getMethod(@NonNull Class<?> klass, @NonNull String name, @Nullable Class<?>... parameterTypes) {
-        Method method = findMethod(klass, name, parameterTypes);
+    public static Method getMethod(@NonNull Class<?> clazz, @NonNull String name, @Nullable Class<?>... parameterTypes) {
+        Method method = findMethod(clazz, name, parameterTypes);
         if (method == null) {
-            throw new UncheckedNoSuchMethodException("No method '" + name + getParameterTypesMessage(parameterTypes) + "' found in class " + klass.getName());
+            throw new UncheckedNoSuchMethodException("No method '" + name + getParameterTypesMessage(parameterTypes) + "' found in class " + clazz.getName());
         }
         return method;
     }
@@ -138,27 +141,27 @@ public final class Reflection<T> {
     }
 
     @Nullable
-    public static Method findMethod(@NonNull Class<?> klass, @NonNull String name, @Nullable Class<?>... parameterTypes) {
-        checkForFindMethod(klass, name, parameterTypes);
-        return findMethodNoChecks(klass, name, parameterTypes);
+    public static Method findMethod(@NonNull Class<?> clazz, @NonNull String name, @Nullable Class<?>... parameterTypes) {
+        checkForFindMethod(clazz, name, parameterTypes);
+        return findMethodNoChecks(clazz, name, parameterTypes);
     }
 
     @Nullable
-    public static Method findMethodNoChecks(Class<?> klass, String name, Class<?>... parameterTypes) {
-        while (klass != null) {
+    public static Method findMethodNoChecks(Class<?> clazz, String name, Class<?>... parameterTypes) {
+        while (clazz != null) {
             try {
-                Method method = klass.getDeclaredMethod(name, parameterTypes);
+                Method method = clazz.getDeclaredMethod(name, parameterTypes);
                 method.setAccessible(true);
                 return method;
             } catch (NoSuchMethodException ignored) {
             }
-            klass = klass.getSuperclass();
+            clazz = clazz.getSuperclass();
         }
         return null;
     }
 
-    private static void checkForFindMethod(Class<?> klass, String name, Class<?>... parameterTypes) {
-        Preconditions.checkNotNull(klass, "klass == null");
+    private static void checkForFindMethod(Class<?> clazz, String name, Class<?>... parameterTypes) {
+        Preconditions.checkNotNull(clazz, "clazz == null");
         Preconditions.checkNotEmpty(name, "name is null or empty");
         Preconditions.checkNotNull(parameterTypes, "parameterTypes == null");
 
@@ -170,58 +173,58 @@ public final class Reflection<T> {
     }
 
     @NonNull
-    public static Field getField(@NonNull Class<?> klass, @NonNull String name) {
-        Field field = findField(klass, name);
+    public static Field getField(@NonNull Class<?> clazz, @NonNull String name) {
+        Field field = findField(clazz, name);
         if (field == null) {
-            throw new UncheckedNoSuchFieldException("No field '" + name + "' found in class " + klass.getName());
+            throw new UncheckedNoSuchFieldException("No field '" + name + "' found in class " + clazz.getName());
         }
         return field;
     }
 
     @Nullable
-    public static Field findField(Class<?> klass, String name) {
-        checkForFindField(klass, name);
-        return findFieldNoChecks(klass, name);
+    public static Field findField(Class<?> clazz, String name) {
+        checkForFindField(clazz, name);
+        return findFieldNoChecks(clazz, name);
     }
 
     @Nullable
-    public static Field findFieldNoChecks(@NonNull Class<?> klass, @NonNull String name) {
-        while (klass != null) {
+    public static Field findFieldNoChecks(@NonNull Class<?> clazz, @NonNull String name) {
+        while (clazz != null) {
             try {
-                Field field = klass.getDeclaredField(name);
+                Field field = clazz.getDeclaredField(name);
                 field.setAccessible(true);
                 return field;
             } catch (NoSuchFieldException ignored) {
             }
-            klass = klass.getSuperclass();
+            clazz = clazz.getSuperclass();
         }
         return null;
     }
 
-    private static void checkForFindField(Class<?> klass, String name) {
-        Preconditions.checkNotNull(klass, "klass == null");
+    private static void checkForFindField(Class<?> clazz, String name) {
+        Preconditions.checkNotNull(clazz, "clazz == null");
         Preconditions.checkNotEmpty(name, "name is null or empty");
     }
 
     @NonNull
-    public static <T> Constructor<T> getConstructor(@NonNull Class<T> klass, @Nullable Class<?>... parameterTypes) {
-        Constructor<T> c = findConstructor(klass, parameterTypes);
+    public static <T> Constructor<T> getConstructor(@NonNull Class<T> clazz, @Nullable Class<?>... parameterTypes) {
+        Constructor<T> c = findConstructor(clazz, parameterTypes);
         if (c == null) {
-            throw new UncheckedNoSuchMethodException("No constructor '" + klass.getName() + getParameterTypesMessage(parameterTypes) + "' found in class " + klass.getName());
+            throw new UncheckedNoSuchMethodException("No constructor '" + clazz.getName() + getParameterTypesMessage(parameterTypes) + "' found in class " + clazz.getName());
         }
         return c;
     }
 
     @Nullable
-    public static <T> Constructor<T> findConstructor(@NonNull Class<T> klass, @Nullable Class<?>... parameterTypes) {
-        checkForFindConstructor(klass, parameterTypes);
-        return findConstructorNoChecks(klass, parameterTypes);
+    public static <T> Constructor<T> findConstructor(@NonNull Class<T> clazz, @Nullable Class<?>... parameterTypes) {
+        checkForFindConstructor(clazz, parameterTypes);
+        return findConstructorNoChecks(clazz, parameterTypes);
     }
 
     @Nullable
-    public static <T> Constructor<T> findConstructorNoChecks(@NonNull Class<T> klass, @Nullable Class<?>... parameterTypes) {
+    public static <T> Constructor<T> findConstructorNoChecks(@NonNull Class<T> clazz, @Nullable Class<?>... parameterTypes) {
         try {
-            Constructor<T> constructor = klass.getDeclaredConstructor(parameterTypes);
+            Constructor<T> constructor = clazz.getDeclaredConstructor(parameterTypes);
             constructor.setAccessible(true);
             return constructor;
         } catch (NoSuchMethodException ignored) {
@@ -229,8 +232,8 @@ public final class Reflection<T> {
         return null;
     }
 
-    private static void checkForFindConstructor(Class<?> klass, Class<?>... parameterTypes) {
-        Preconditions.checkNotNull(klass, "klass == null");
+    private static void checkForFindConstructor(Class<?> clazz, Class<?>... parameterTypes) {
+        Preconditions.checkNotNull(clazz, "clazz == null");
         Preconditions.checkNotNull(parameterTypes, "parameterTypes == null");
 
         for (int i = 0; i < parameterTypes.length; i++) {
@@ -241,20 +244,57 @@ public final class Reflection<T> {
     }
 
     public boolean isInstance(@Nullable Object instance) {
-        return klass.isInstance(instance);
+        return clazz.isInstance(instance);
     }
 
-    public static class WrappedMethod {
-        private Method method;
+    public int getModifiers() {
+        return clazz.getModifiers();
+    }
 
-        WrappedMethod(Method method) {
-            method.setAccessible(true);
-            this.method = method;
+    public boolean isLambdaClass() {
+        return isLambdaClass(clazz);
+    }
+
+    public boolean isProxyClass() {
+        return isProxyClass(clazz);
+    }
+
+    public static boolean isLambdaClass(Class<?> clazz) {
+        return clazz.getName().contains("$$Lambda$");
+    }
+
+    public static boolean isProxyClass(Class<?> clazz) {
+        return Proxy.isProxyClass(clazz);
+    }
+
+    public static class MemberWrapper<M extends AccessibleObject & Member> {
+        M member;
+        MemberWrapper(M member) {
+            member.setAccessible(true);
+            this.member = member;
+        }
+
+        @NonNull public final M unwrap() {
+            return member;
+        }
+
+        public final int getModifiers() {
+            return member.getModifiers();
+        }
+
+        public final Class<?> getDeclaringClass() {
+            return member.getDeclaringClass();
+        }
+    }
+
+    public static class MethodWrapper extends MemberWrapper<Method> {
+        MethodWrapper(Method method) {
+            super(method);
         }
 
         public <T> T call(Object instance, Object... args) {
             try {
-                return (T) method.invoke(instance, args);
+                return (T) member.invoke(instance, args);
             } catch (IllegalAccessException e) {
                 throw new UncheckedIllegalAccessException(e);
             } catch (InvocationTargetException e) {
@@ -265,23 +305,16 @@ public final class Reflection<T> {
         public <T> T callStatic(Object... args) {
             return call(null, args);
         }
-
-        public Method unwrap() {
-            return method;
-        }
     }
 
-    public static class WrappedField {
-        private Field field;
-
-        WrappedField(Field field) {
-            field.setAccessible(true);
-            this.field = field;
+    public static class FieldWrapper extends MemberWrapper<Field> {
+        FieldWrapper(Field field) {
+            super(field);
         }
 
         public <T> T getValue(Object instance) {
             try {
-                return (T) field.get(instance);
+                return (T) member.get(instance);
             } catch (IllegalAccessException e) {
                 throw new UncheckedIllegalAccessException(e);
             }
@@ -293,7 +326,7 @@ public final class Reflection<T> {
 
         public void setValue(Object instance, Object value) {
             try {
-                field.set(instance, value);
+                member.set(instance, value);
             } catch (IllegalAccessException e) {
                 throw new UncheckedIllegalAccessException(e);
             }
@@ -302,19 +335,20 @@ public final class Reflection<T> {
         public void setStaticValue(Object value) {
             setValue(null, value);
         }
+
+        public Class<?> getType() {
+            return member.getType();
+        }
     }
 
-    public static class WrappedConstructor<T> {
-        private Constructor<T> constructor;
-
-        public WrappedConstructor(Constructor<T> constructor) {
-            constructor.setAccessible(true);
-            this.constructor = constructor;
+    public static class ConstructorWrapper<T> extends MemberWrapper<Constructor<T>> {
+        ConstructorWrapper(Constructor<T> constructor) {
+            super(constructor);
         }
 
         public T newInstance(Object... args) {
             try {
-                return constructor.newInstance(args);
+                return member.newInstance(args);
             } catch (IllegalAccessException e) {
                 throw new UncheckedIllegalAccessException(e);
             } catch (InvocationTargetException e) {
@@ -322,10 +356,6 @@ public final class Reflection<T> {
             } catch (InstantiationException e) {
                 throw new UncheckedInstantiationException(e);
             }
-        }
-
-        public Constructor<T> unwrap() {
-            return constructor;
         }
     }
 }

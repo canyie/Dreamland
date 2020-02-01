@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId "com.canyie.dreamland"
         minSdkVersion 24
-        //noinspection ExpiredTargetSdkVersion
+        // noinspection ExpiredTargetSdkVersion
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
@@ -23,8 +23,12 @@ android {
         }
     }
     buildTypes {
-        release {
+        debug {
             minifyEnabled false
+        }
+
+        release {
+            minifyEnabled false // TODO: Enable minify
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -45,6 +49,7 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.annotation:annotation:1.1.0'
+    implementation 'com.google.code.gson:gson:2.8.6'
     implementation project(':xposed-bridge')
     testImplementation 'junit:junit:4.12'
     //androidTestImplementation 'androidx.test.ext:junit:1.1.0'

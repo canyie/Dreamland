@@ -18,17 +18,13 @@ add_library( # Sets the name of the library.
 
         # Provides a relative path to your source file(s).
         utils/well_known_classes.cpp
-        utils/selinux_helper.cpp
-        dreamland/override_jni_methods.cpp
         main.cpp
         dreamland/dreamland.cpp
-        utils/selinux.c
 
         # XHook
         external/xhook/xhook.c
         external/xhook/xh_core.c
         external/xhook/xh_elf.c
-        external/xhook/xh_jni.c
         external/xhook/xh_log.c
         external/xhook/xh_util.c
         external/xhook/xh_version.c

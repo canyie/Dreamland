@@ -10,13 +10,17 @@
 #include "../utils/scoped_local_ref.h"
 #include "../utils/well_known_classes.h"
 #include "../utils/jni_helper.h"
-#include "../utils/required_platform_classes.h"
 
 using namespace dreamland;
 
 Dreamland *Dreamland::instance = nullptr;
 
 bool Dreamland::ShouldDisable() {
+    if (getuid() == 1000/*SYSTEM_UID*/) {
+        // Can't hook java methods in the process now...
+        LOGW("Dreamland is disabled in system user.");
+        return true;
+    }
     if (access(DREAMLAND_BASE, F_OK) != 0) {
         LOGE("Dreamland framework is broken: base directory is not exist!");
         return true;
@@ -99,24 +103,24 @@ bool Dreamland::javaInit(JNIEnv *env) {
     class_loader.Reset();
     jmethodID main = env->GetStaticMethodID(main_class.Get(), "init", "()I");
     onAppProcessStart = env->GetStaticMethodID(main_class.Get(), "onAppProcessStart",
-                                               "(Ljava/lang/String;)V");
+                                               "()V");
     if (UNLIKELY(onAppProcessStart == nullptr)) {
-        LOGE("Method Lcom/canyie/dreamland/Main;->onAppProcessStart(Ljava/lang/String;)V not found.");
+        LOGE("Method Lcom/canyie/dreamland/Main;->onAppProcessStart()V not found.");
         JNIHelper::AssertAndClearPendingException(env);
         return false;
     }
-    onSystemServerStart = env->GetStaticMethodID(main_class.Get(), "onSystemServerStart", "()V");
+    /*onSystemServerStart = env->GetStaticMethodID(main_class.Get(), "onSystemServerStart", "()V");
     if (UNLIKELY(onSystemServerStart == nullptr)) {
         LOGE("Method Lcom/canyie/dreamland/Main;->onSystemServerStart()V not found.");
         JNIHelper::AssertAndClearPendingException(env);
         return false;
-    }
+    }*/
     jint status = env->CallStaticIntMethod(main_class.Get(), main);
     if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
         return false;
     }
     if (UNLIKELY(status != 0)) {
-        LOGE("onZygoteStart() returned error %d", status);
+        LOGE("java init() returned error %d", status);
         return false;
     }
     java_main_class = reinterpret_cast<jclass> (env->NewGlobalRef(main_class.Get()));
@@ -186,24 +190,23 @@ JNIEnv *Dreamland::GetJNIEnv() {
     return env;
 }
 
-bool Dreamland::OnAppProcessStart(jstring java_nice_name) {
+bool Dreamland::OnAppProcessStart() {
     Dreamland *instance = GetInstance();
     if (instance == nullptr) {
         LOGE("Application process started but the Dreamland framework is not initialized.");
         return false;
     }
     JNIEnv *env = instance->GetJNIEnv();
-    env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart,
-                              java_nice_name);
+    env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart);
     if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-        LOGE("Failed to call callback method Lcom/canyie/dreamland/Main;->onAppProcessStart(Ljava/lang/String;)V");
+        LOGE("Failed to call callback method Lcom/canyie/dreamland/Main;->onAppProcessStart()V");
         return false;
     }
     return true;
 }
 
 bool Dreamland::OnSystemServerStart() {
-    Dreamland *instance = GetInstance();
+    /*Dreamland *instance = GetInstance();
     if (instance == nullptr) {
         LOGE("System server started but the Dreamland framework is not initialized.");
         return false;
@@ -214,7 +217,8 @@ bool Dreamland::OnSystemServerStart() {
         LOGE("Failed to call callback method Lcom/canyie/dreamland/Main;->onSystemServerStart()V");
         return false;
     }
-    return true;
+    return true;*/
+    return false;
 }
 
 

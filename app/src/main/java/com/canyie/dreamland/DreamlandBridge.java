@@ -1,5 +1,6 @@
 package com.canyie.dreamland;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 
 import com.canyie.dreamland.core.Dreamland;
@@ -15,8 +16,7 @@ import java.lang.reflect.Modifier;
 /**
  * Created by canyie on 2019/11/25.
  */
-@SuppressWarnings("unused")
-public final class DreamlandBridge {
+@Keep @SuppressWarnings("unused") public final class DreamlandBridge {
     private DreamlandBridge() {
     }
 
@@ -51,6 +51,4 @@ public final class DreamlandBridge {
     public static boolean disableVMInline() {
         return SandHook.disableVMInline();
     }
-
-
 }

@@ -1,14 +1,13 @@
 package com.canyie.dreamland.core;
 
-import android.text.TextUtils;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -18,9 +17,17 @@ import dalvik.system.PathClassLoader;
 /**
  * Created by canyie on 2019/11/12.
  */
-public final class ModuleInfo {
+@Keep public final class ModuleInfo {
     public String name;
     public String path;
+
+    public ModuleInfo() {
+    }
+
+    public ModuleInfo(String name, String path) {
+        this.name = name;
+        this.path = path;
+    }
 
     public void parseCallbacks(@NonNull List<String> out) throws IOException {
         try(ZipFile zip = new ZipFile(path)) {
@@ -38,9 +45,5 @@ public final class ModuleInfo {
                 }
             }
         }
-    }
-
-    @NonNull public ClassLoader getClassLoader() {
-        return new PathClassLoader(path, getClass().getClassLoader());
     }
 }

@@ -10,12 +10,10 @@ import com.swift.sandhook.annotation.HookMethodBackup;
 import com.swift.sandhook.annotation.HookReflectClass;
 import com.swift.sandhook.annotation.MethodParams;
 import com.swift.sandhook.annotation.ThisObject;
-import com.swift.sandhook.xposedcompat.XposedCompat;
-
-import java.io.File;
 import java.lang.reflect.Method;
 
-import mirror.android.app.ActivityThread;
+import de.robv.android.xposed.callbacks.XC_LoadPackage;
+
 
 /**
  * Created by canyie on 2019/11/13.
@@ -33,14 +31,16 @@ public final class LoadedApkHooker {
     public static ClassLoader getClassLoader(@ThisObject Object loadedApk) throws Throwable {
         ClassLoader classLoader = (ClassLoader) SandHook.callOriginByBackup(getClassLoaderBackup, loadedApk);
         try {
+            if (classLoader == null) {
+                Log.w(Dreamland.TAG, "LoadedApk.getClassLoader() return null, ignore.");
+                return null;
+            }
             if (!classLoaderReady) {
                 classLoaderReady = true;
                 Log.i(Dreamland.TAG, "AppClassLoader is already!");
                 Dreamland d = Dreamland.getInstance();
-                d.initClassLoader(Dreamland.class.getClassLoader());
-                if (d.canLoadXposedModules()) {
-                    d.loadXposedModules();
-                }
+                d.initClassLoader(classLoader);
+                d.ready();
             }
         } catch (Throwable e) {
             try {
