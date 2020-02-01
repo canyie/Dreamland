@@ -24,15 +24,5 @@ allprojects {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
-}
-
-task showRepos {
-    doLast {
-        println "All repos:"
-        repositories.collect {
-            println it.name + '： ' + it.url
-        }
-        println rootProject.buildDir
-        println new File(rootDir, "extern").getAbsolutePath()
-    }
+    delete "${rootDir}/export"
 }

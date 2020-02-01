@@ -93,7 +93,8 @@ public abstract class XCallback implements Comparable<XCallback> {
 			try {
 				return (XCallback.Param) super.clone();
 			} catch (CloneNotSupportedException e) {
-				throw new RuntimeException(e);
+				// should never happen, we're a Cloneable
+				throw new InternalError(e);
 			}
 		}
 

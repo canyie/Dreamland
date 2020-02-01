@@ -17,5 +17,8 @@
 #-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
-# hide the original source file name.
+# hide the original source f.ile name.
 #-renamesourcefileattribute SourceFile
+
+-keep class com.swift.sandhook.** { *; }
+-keep class de.robv.android.xposed.** { *; }

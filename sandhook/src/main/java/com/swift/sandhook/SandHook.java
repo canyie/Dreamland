@@ -166,31 +166,22 @@ public class SandHook {
 
     public final static Object callOriginMethod(boolean backupIsStub, Member originMethod, Method backupMethod, Object thiz, Object[] args) throws Throwable {
         //reset declaring class
+        Class originClassHolder = null;
         if (!backupIsStub && SandHookConfig.SDK_INT >= Build.VERSION_CODES.N) {
             //holder in stack to avoid moving gc
-            Class originClassHolder = originMethod.getDeclaringClass();
+            originClassHolder = originMethod.getDeclaringClass();
             ensureDeclareClass(originMethod, backupMethod);
         }
-        if (Modifier.isStatic(originMethod.getModifiers())) {
-            try {
-                return backupMethod.invoke(null, args);
-            } catch (InvocationTargetException throwable) {
-                if (throwable.getCause() != null) {
-                    throw throwable.getCause();
-                } else {
-                    throw throwable;
-                }
-            }
-        } else {
-            try {
-                return backupMethod.invoke(thiz, args);
-            } catch (InvocationTargetException throwable) {
-                if (throwable.getCause() != null) {
-                    throw throwable.getCause();
-                } else {
-                    throw throwable;
-                }
-            }
+        Object thisObj = !Modifier.isStatic(originMethod.getModifiers()) ? thiz : null;
+        try {
+            return backupMethod.invoke(thisObj, args);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            throw cause != null ? cause : e;
+        } finally {
+            // ensure originClass in stack to avoid moving gc
+            if (originClassHolder != null)
+                originClassHolder.getClass();
         }
     }
 
