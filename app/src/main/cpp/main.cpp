@@ -44,21 +44,6 @@ extern void fake_nativeZygoteInit(JNIEnv *env, jobject clazz) {
     Dreamland::OnAppProcessStart();
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_canyie_dreamland_MainActivity_testNativeHook(
-        JNIEnv *env,
-        jobject) {
-}
-
-void onRuntimeReady(JNIEnv *env) {
-    LOGI("The runtime is already.");
-    if (LIKELY(Dreamland::Initialize(env))) {
-        LOGI("Dreamland framework is initialized.");
-    } else {
-        LOGE("Dreamland framework initialize failed. Do nothing.");
-    }
-}
-
 int hook_jniRegisterNativeMethods(JNIEnv *env, const char *className,
                                   JNINativeMethod *methods, int numMethods) {
     /*
