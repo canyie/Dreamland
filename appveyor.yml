@@ -1,0 +1,37 @@
+environment:
+  ANDROID_HOME: C:\android-sdk-windows
+  
+clone_folder: C:\Dreamland
+
+install:
+  - appveyor DownloadFile https://dl.google.com/android/repository/sdk-tools-windows-4333796.zip
+  - 7z x sdk-tools-windows-4333796.zip -oC:\android-sdk-windows > nul
+  - yes | C:\android-sdk-windows\tools\bin\sdkmanager.bat --licenses > nul
+  - C:\android-sdk-windows\tools\bin\sdkmanager.bat "platforms;android-28" > nul
+  - C:\android-sdk-windows\tools\bin\sdkmanager.bat "platform-tools" > nul
+  - C:\android-sdk-windows\tools\bin\sdkmanager.bat "build-tools;28.0.3" > nul
+  - C:\android-sdk-windows\tools\bin\sdkmanager.bat "cmake;3.10.2.4988404" > nul
+  - C:\android-sdk-windows\tools\bin\sdkmanager.bat "ndk-bundle" > nul
+  - set PATH=%PATH%;C:\android-sdk-windows\ndk-bundle;C:\android-sdk-windows\build-tools\28.0.3
+
+build_script:
+  - gradlew.bat :app:assembleRelease
+  - mkdir artifacts\system\framework
+  - mkdir artifacts\system\lib
+  - mkdir artifacts\system\lib64
+  - 7z x app\build\outputs\apk\release\app-release-unsigned.apk -oartifact > nul
+  - copy artifact\classes.dex template\dreamland
+  - chdir template\dreamland
+  - 7z a -tzip -r ..\..\artifacts\system\framework\dreamland.jar *
+  - chdir ..\..
+  - copy template\install.sh artifacts
+  - copy template\uninstall.sh artifacts
+  - copy template\properties.json artifacts
+  - copy artifact\lib\arm64-v8a\* artifacts\system\lib64
+  - copy artifact\lib\armeabi-v7a\* artifacts\system\lib
+  - chdir artifacts
+  - 7z a -tzip -r dreamland.zip *
+
+artifacts:
+- path: artifacts/dreamland.zip
+  name: Dreamland CI by MlgmXyysd
