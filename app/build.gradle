@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
     defaultConfig {
         applicationId "com.canyie.dreamland"
-        minSdkVersion 24
+        minSdkVersion rootProject.ext.minSdkVersion
         // noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 29
-        versionCode 1
-        versionName "1.0"
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
@@ -56,3 +56,85 @@ dependencies {
     //androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
 }
 
+
+def moduleProp = [
+        id      :   'dreamland',
+        name    :   'dreamland',
+        author  :   'canyie',
+        version :   rootProject.ext.versionCode,
+        versionName :   rootProject.ext.versionName,
+        description :   'modify public.libraries.txt to make Xposed work'
+]
+
+
+def magiskPath = "$projectDir/magisk"
+def releasePath = "$projectDir/release"
+def buildPath = "$buildDir/magisk"
+def apkPath = "$buildDir/outputs/apk/release/app-release-unsigned.apk"
+def zipFileName = "magisk-${moduleProp['id']}-${moduleProp['versionName']}.zip"
+
+
+task cleanMagiskFiles(type: Delete) {
+    delete file(buildPath)
+    delete file("$releasePath/$zipFileName")
+}
+
+task copyBuildFiles(type: Copy) {
+    from zipTree(file(apkPath))
+    into file(file(buildPath))
+
+    doLast {
+        file("$buildPath/lib").renameTo("$buildPath/system")
+        file("$buildPath/system/armeabi-v7a").renameTo("$buildPath/system/lib")
+        file("$buildPath/system/arm64-v8a").renameTo("$buildPath/system/lib64")
+
+        file("$buildPath/res").deleteDir()
+        file("$buildPath/META-INF").deleteDir()
+        file("$buildPath/resources.arsc").delete()
+        file("$buildPath/AndroidManifest.xml").delete()
+    }
+}
+
+task zipClassesDex(type: Exec) {
+    doFirst {
+        file("$buildPath/system/framework").mkdirs()
+    }
+
+    commandLine 'jar', 'cvf',
+            "$buildPath/system/framework/dreamland.jar",
+            '-C', "$buildPath", 'classes.dex'
+
+    doLast {
+        file("$buildPath/classes.dex").delete()
+    }
+}
+
+
+task copyMagiskTemplate(type: Copy) {
+    from magiskPath
+    into buildPath
+
+    doLast {
+        new File(buildPath, 'module.prop').withWriter('utf-8') { writer ->
+            moduleProp.each { k, v -> writer.write("$k=$v\n") }
+        }
+    }
+}
+
+task zipMagiskFiles(type: Zip) {
+    archiveFileName = zipFileName
+    destinationDirectory = file(releasePath)
+    from buildPath
+}
+
+task assembleMagiskRelease(type: GradleBuild) {
+    tasks = [
+            'cleanMagiskFiles',
+            'copyBuildFiles',
+            'zipClassesDex',
+            'copyMagiskTemplate',
+            'zipMagiskFiles'
+    ]
+}
+
+assembleMagiskRelease.dependsOn(build)
