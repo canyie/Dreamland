@@ -15,8 +15,8 @@ cp -f "$LIBRARIES_TXT" "$MODPATH/system/etc/" || abort "! Failed to copy $LIBRAR
 LIBRARIES_TXT="$MODPATH/system/etc/public.libraries.txt"
 
 
-cat "$LIBRARIES_TXT" | grep -v '#' | grep 'libclipmgr.so' > /dev/null 2>&1 || \
-echo 'libclipmgr.so' >> "$LIBRARIES_TXT"
+cat "$LIBRARIES_TXT" | grep -v '#' | grep 'libdreamland.so' > /dev/null 2>&1 || \
+echo 'libdreamland.so' >> "$LIBRARIES_TXT"
 
 ui_print "- Extracting module file ..."
 unzip -o "$ZIPFILE" 'system/*' -d "$MODPATH" || abort "! Failed to unzip module file"
