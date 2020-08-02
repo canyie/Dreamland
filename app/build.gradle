@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
     defaultConfig {
-        applicationId "com.canyie.dreamland"
-        minSdkVersion 24
-        // noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 29
-        versionCode 1
-        versionName "1.0"
+        applicationId "top.canyie.dreamland"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
+        multiDexEnabled false
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
@@ -18,7 +18,7 @@ android {
             }
         }
         ndk {
-            moduleName "dreamland"
+            moduleName "riru_dreamland"
             abiFilters  "arm64-v8a","armeabi-v7a"
         }
     }
@@ -49,10 +49,91 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.annotation:annotation:1.1.0'
+    implementation 'top.canyie.pine:core:0.1.7'
+    implementation 'top.canyie.pine:xposed:0.0.4'
     implementation 'com.google.code.gson:gson:2.8.6'
-    implementation project(':xposed-bridge')
     testImplementation 'junit:junit:4.12'
     //androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     //androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
 }
 
+def moduleProp = [
+        id: 'dreamland',
+        name: 'Dreamland',
+        author: 'canyie',
+        version: rootProject.ext.versionCode,
+        versionName: rootProject.ext.versionName,
+        description: 'A third-party Xposed framework.',
+        minMagisk: rootProject.ext.minMagiskVersion,
+        api: rootProject.ext.riruApiVersion
+]
+
+def tempPath = "$buildDir/intermediates/magisk"
+def tempTemplatePath = "$tempPath/template"
+def localDir = "$tempPath/local"
+def jarName = 'dreamland.jar'
+def jarOutputDir = "$tempTemplatePath/system/framework"
+def jarOutputPath = "$jarOutputDir/$jarName"
+def nativeDir = "$tempTemplatePath/system/"
+def nativeAbiToSystemDirMap = ['armeabi-v7a': 'lib', 'arm64-v8a': 'lib64']
+def nativeLibName = 'libriru_dreamland.so'
+def releasePath = "$buildDir/outputs/magisk"
+
+task copyMagiskTemplate(type: Copy) {
+    from file("$rootDir/template")
+    into file(tempTemplatePath)
+
+    doLast {
+        file("$tempTemplatePath/module.prop").withWriter('utf-8') { writer ->
+            moduleProp.each { name, value -> writer.write("$name=$value\n") }
+        }
+    }
+}
+
+task copyNativeLibs() {
+    doLast {
+        stripReleaseDebugSymbols.outputs.files.each { baseInputDir ->
+            nativeAbiToSystemDirMap.each { origin, to ->
+                copy {
+                    from file("$baseInputDir/lib/$origin/$nativeLibName")
+                    into file("$nativeDir/$to")
+                }
+            }
+        }
+    }
+
+    // FIXME: stripReleaseDebugSymbols.state.upToDate is always false
+    onlyIf { !stripReleaseDebugSymbols.state.upToDate || !file(nativeDir).exists() }
+}
+
+task jarClassesDex(type: Jar) {
+    def dexDir = file("$localDir/dex")
+
+    doFirst {
+        copy {
+            from mergeDexRelease.outputs.files
+            into dexDir
+        }
+    }
+
+    from dexDir
+    destinationDir file(jarOutputDir)
+    archiveName jarName
+
+    onlyIf { !mergeDexRelease.state.upToDate || !file(jarOutputPath).exists() }
+}
+
+task zipMagiskFiles(type: Zip) {
+    from file(tempTemplatePath)
+    destinationDir file(releasePath)
+    baseName "magisk-${moduleProp['id']}-v${moduleProp['versionName']}"
+}
+
+task assembleMagiskRelease(type: GradleBuild, dependsOn: build) {
+    tasks = [
+            'copyMagiskTemplate',
+            'copyNativeLibs',
+            'jarClassesDex',
+            'zipMagiskFiles'
+    ]
+}

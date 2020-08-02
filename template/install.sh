@@ -1,108 +1,198 @@
-echo_error() {
-    echo $1 >&2
+##########################################################################################
+#
+# Magisk Module Installer Script
+#
+##########################################################################################
+##########################################################################################
+#
+# Instructions:
+#
+# 1. Place your files into system folder (delete the placeholder file)
+# 2. Fill in your module's info into module.prop
+# 3. Configure and implement callbacks in this file
+# 4. If you need boot scripts, add them into common/post-fs-data.sh or common/service.sh
+# 5. Add your additional or modified system properties into common/system.prop
+#
+##########################################################################################
+
+##########################################################################################
+# Config Flags
+##########################################################################################
+
+# Set to true if you do *NOT* want Magisk to mount
+# any files for you. Most modules would NOT want
+# to set this flag to true
+SKIPMOUNT=false
+
+# Set to true if you need to load system.prop
+PROPFILE=true
+
+# Set to true if you need post-fs-data script
+POSTFSDATA=true
+
+# Set to true if you need late_start service script
+LATESTARTSERVICE=false
+
+##########################################################################################
+# Replace list
+##########################################################################################
+
+# List all directories you want to directly replace in the system
+# Check the documentations for more info why you would need this
+
+# Construct your own list here
+REPLACE="
+"
+
+##########################################################################################
+# Global varibles
+##########################################################################################
+
+RIRU_PATH=/data/misc/riru
+RIRU_MODULE_PATH=$RIRU_PATH/modules/dreamland
+DREAMLAND_PATH=/data/misc/dreamland
+
+##########################################################################################
+#
+# Function Callbacks
+#
+# The following functions will be called by the installation framework.
+# You do not have the ability to modify update-binary, the only way you can customize
+# installation is through implementing these functions.
+#
+# When running your callbacks, the installation framework will make sure the Magisk
+# internal busybox path is *PREPENDED* to PATH, so all common commands shall exist.
+# Also, it will make sure /data, /system, and /vendor is properly mounted.
+#
+##########################################################################################
+##########################################################################################
+#
+# The installation framework will export some variables and functions.
+# You should use these variables and functions for installation.
+#
+# ! DO NOT use any Magisk internal paths as those are NOT public API.
+# ! DO NOT use other functions in util_functions.sh as they are NOT public API.
+# ! Non public APIs are not guranteed to maintain compatibility between releases.
+#
+# Available variables:
+#
+# MAGISK_VER (string): the version string of current installed Magisk
+# MAGISK_VER_CODE (int): the version code of current installed Magisk
+# BOOTMODE (bool): true if the module is currently installing in Magisk Manager
+# MODPATH (path): the path where your module files should be installed
+# TMPDIR (path): a place where you can temporarily store files
+# ZIPFILE (path): your module's installation zip
+# ARCH (string): the architecture of the device. Value is either arm, arm64, x86, or x64
+# IS64BIT (bool): true if $ARCH is either arm64 or x64
+# API (int): the API level (Android version) of the device
+#
+# Availible functions:
+#
+# ui_print <msg>
+#     print <msg> to console
+#     Avoid using 'echo' as it will not display in custom recovery's console
+#
+# abort <msg>
+#     print error message <msg> to console and terminate installation
+#     Avoid using 'exit' as it will skip the termination cleanup steps
+#
+# set_perm <target> <owner> <group> <permission> [context]
+#     if [context] is empty, it will default to "u:object_r:system_file:s0"
+#     this function is a shorthand for the following commands
+#       chown owner.group target
+#       chmod permission target
+#       chcon context target
+#
+# set_perm_recursive <directory> <owner> <group> <dirpermission> <filepermission> [context]
+#     if [context] is empty, it will default to "u:object_r:system_file:s0"
+#     for all files in <directory>, it will call:
+#       set_perm file owner group filepermission context
+#     for all directories in <directory> (including itself), it will call:
+#       set_perm dir owner group dirpermission context
+#
+##########################################################################################
+##########################################################################################
+# If you need boot scripts, DO NOT use general boot scripts (post-fs-data.d/service.d)
+# ONLY use module scripts as it respects the module status (remove/disable) and is
+# guaranteed to maintain the same behavior in future Magisk releases.
+# Enable boot scripts by setting the flags in the config section above.
+##########################################################################################
+
+extract_sepolicy_rule_failed() {
+  ui_print "- Extract sepolicy.rule failed, but don't be afraid"
+  ui_print "- We will live patch the sepolicy at next boot in the post-fs-data script"
 }
 
-abort() {
-    echo_error "! $1"
-    echo_error "! aborting..."
-    exit 1
+# Set what you want to display when installing your module
+
+print_modname() {
+  ui_print "- *******************************"
+  ui_print "- *   Dreamland Magisk Module   *"
+  ui_print "- *         by @canyie          *"
+  ui_print "- *      Powered by Magisk      *"
+  ui_print "- *******************************"
 }
 
-set_permission_or_die() {
-    chmod $2 $1 || abort "chmod($1) failed"
-}
+# Copy/extract your module files into $MODPATH in on_install.
 
-set_directory_permission_or_die() {
-    chmod -R $2 $1 || abort "chmod($1) failed"
-}
+on_install() {
+  if [[ $ARCH != "arm64" && $ARCH != "arm" ]]; then
+    abort "! Unsupported architecture: $ARCH"
+  else
+    ui_print "- Device architecture: $ARCH"
+  fi
 
-set_owner_or_die() {
-    chown $2:$3 $1 || abort "chown($1) failed"
-}
+  if [[ $API -lt 24 ]]; then
+    abort "! Unsupported Android API level $API"
+  else
+    ui_print "- Android API level: $API"
+  fi
 
-set_directory_owner_or_die() {
-    chown -R $2:$3 $1 || abort "chown($1) failed"
-}
+  [[ -f $RIRU_PATH/api_version ]] || [[ -f $RIRU_PATH/api_version.new ]] || abort "! Requirement module 'Riru - Core' is not installed" 
 
-set_context_or_die() {
-    if [ $is_selinux_enabled -eq 1 ]; then
-        chcon $2 $1 || abort "chcon($1) failed"
-    fi
-}
+  RIRU_API_VERSION=$(cat $RIRU_PATH/api_version.new) || RIRU_API_VERSION=$(cat $RIRU_PATH/api_version) || RIRU_API_VERSION=0
+  ui_print "- Riru API version: $RIRU_API_VERSION"
 
-set_directory_context_or_die() {
-    if [ $is_selinux_enabled -eq 1 ]; then
-        chcon -R $2 $1 || abort "chcon($1) failed"
-    fi
-}
+  RIRU_MIN_API=$(grep_prop api $TMPDIR/module.prop)
+  [[ $RIRU_API_VERSION -ge $RIRU_MIN_API ]] || abort "! Unsupported Riru API version $RIRU_API_VERSION"
 
-set_system_file() {
-    set_owner_or_die "/system/$1" root root
-    set_permission_or_die "/system/$1" 644
-    set_context_or_die "/system/$1" "u:object_r:system_file:s0"
-}
-
-copy_file_to_system() {
-    cp "system/$1" "/system/$1" || abort "cp(/system/$1) failed"
-    set_system_file $1
-}
-
-echo "#######################"
-echo "#                     #"
-echo "# Dreamland Installer #"
-echo "#                     #"
-echo "#######################"
-
-uid=$(id -u)
-if [ $uid -ne 0 ]; then
-    abort "Dreamland installer should run as root!"
-fi
-
-if [ ! -d "/data/dreamland/" ]; then
-    echo "Creating directory /data/dreamland/ ..."
-    mkdir -p "/data/dreamland/" || abort "mkdir(/data/dreamland/) failed"
-fi
-
-set_directory_owner_or_die /data/dreamland/ $manager_uid $manager_gid
-set_directory_permission_or_die /data/dreamland/ 755
-set_directory_context_or_die /data/dreamland/ $manager_file_secontext
-
-if [ ! -d "/data/dreamland/backup/" ]; then
-    mkdir -p "/data/dreamland/backup/" || abort "mkdir(/data/dreamland/backup/) failed"
-fi
-set_directory_owner_or_die /data/dreamland/backup/ $manager_uid $manager_gid
-set_directory_permission_or_die /data/dreamland/backup/ 700
-
-echo "Mounting /system read-write..."
-
-mount -o rw,remount /system || abort "failed to mount /system read-write"
-
-echo "Copying dreamland files..."
-
-copy_file_to_system lib/libdreamland.so
-if [ -d "/system/lib64" ]; then
-    copy_file_to_system lib64/libdreamland.so
-fi
-
-copy_file_to_system framework/dreamland.jar
-
-if [ ! -f "/data/dreamland/backup/public.libraries.txt" ]; then
-    echo "Backing up /system/etc/public.libraries.txt ..."
-    cp "/system/etc/public.libraries.txt" "/data/dreamland/backup/public.libraries.txt" || abort "backup public.libraries.txt failed"
-    
-    echo "Appending core so path to public.libraries.txt ..."
-    if [ $(tail -n1 /system/etc/public.libraries.txt | wc -l) -eq 1 ]; then
-        # has a new line end of the file
-        append="libdreamland.so"
+  if [[ $(pm path top.canyie.dreamland.manager) == "" ]]; then
+    if [[ $(pm path top.canyie.dreamland.manager) != "" ]]; then
+      ui_print "- Detected deprecated dreamland manager"
+      ui_print "- It is not compatible with current framework version"
     else
-        append="\nlibdreamland.so"
+      ui_print "- Dreamland Manager not found"
+      ui_print "- You cannot manage Dreamland configuration"
     fi
-    echo $append >> /system/etc/public.libraries.txt || abort "write public.libraries.txt failed"
-    # Ensure that /system/etc/public.libraries.txt has the correct owner, permissions, and SELinux context.
-    # TODO: try restore /system/etc/public.libraries.txt when set owner/permission/context failed.
-    set_system_file etc/public.libraries.txt
-fi
+    ui_print "- Please install new Dreamland Manager"
+  fi
+  
+  ui_print "- Extracting module files"
+  unzip -o $ZIPFILE system/* -d $MODPATH >&2 || abort "! Can't extract system/: $?"
 
-echo "All done."
+  ui_print "- Extracting riru files"
+  [[ -d $RIRU_MODULE_PATH ]] || mkdir -p $RIRU_MODULE_PATH || abort "! Can't create $RIRU_MODULE_PATH: $?"
+  cp -f $TMPDIR/module.prop $RIRU_MODULE_PATH/module.prop || abort "! Can't copy module.prop to $RIRU_MODULE_PATH: $?"
 
-exit 0
+  ui_print "- Preparing local directory"
+  [[ -d $DREAMLAND_PATH ]] || mkdir -p $DREAMLAND_PATH || abort "! Can't create $DREAMLAND_PATH: $?"
+
+  if [[ $MAGISK_VER_CODE -ge 20200 ]]; then
+    ui_print "- Extracting sepolicy.rule for Magisk $MAGISK_VER"
+    cp -f $TMPDIR/sepolicy.rule $MODPATH/sepolicy.rule || extract_sepolicy_rule_failed
+  else
+    ui_print "- Magisk version $MAGISK_VER is lower than 20.2"
+    ui_print "- We recommend that you upgrade Magisk to the latest version"
+  fi
+}
+
+# Only some special files require specific permissions
+# This function will be called after on_install is done
+# The default permissions should be good enough for most cases
+
+set_permissions() {
+  # The following is the default rule, DO NOT remove
+  set_perm_recursive $MODPATH 0 0 0755 0644
+
+  set_perm_recursive $DREAMLAND_PATH 1000 1000 0700 0600 u:object_r:system_data_file:s0
+}

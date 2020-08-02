@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-        dreamland
+        riru_dreamland
 
         # Sets the library as a shared library.
         SHARED
@@ -20,6 +20,7 @@ add_library( # Sets the name of the library.
         utils/well_known_classes.cpp
         main.cpp
         dreamland/dreamland.cpp
+        dreamland/android.cpp
 
         # XHook
         external/xhook/xhook.c
@@ -45,20 +46,26 @@ find_library( # Sets the name of the path variable.
         log)
 
 add_library(sandhook STATIC IMPORTED)
+add_library(pine STATIC IMPORTED)
 
 get_filename_component(current_source_dir ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)
 set(export_dir "${current_source_dir}/../../../../export")
 get_filename_component(export_dir ${export_dir} ABSOLUTE)
 set_target_properties(sandhook PROPERTIES IMPORTED_LOCATION ${export_dir}/sandhook/${ANDROID_ABI}/libsandhook.a)
 
+set(external_dir "${current_source_dir}/../../../../external")
+get_filename_component(export_dir ${external_dir} ABSOLUTE)
+set_target_properties(pine PROPERTIES IMPORTED_LOCATION ${external_dir}/pine/${ANDROID_ABI}/libpine.a)
+
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-        dreamland
+        riru_dreamland
 
         ${log-lib}
-        sandhook)
+        sandhook
+        pine)
 
 ENABLE_LANGUAGE(ASM)

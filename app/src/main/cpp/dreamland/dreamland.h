@@ -12,43 +12,51 @@
 namespace dreamland {
     class Dreamland {
     public:
-        static constexpr int VERSION = 1;
+        static constexpr int VERSION = 2;
+
         static bool ShouldDisable();
-        static bool Initialize(JNIEnv *env);
+
+        static bool Prepare(JNIEnv* env);
+
         static Dreamland* GetInstance() {
             return instance;
         }
-        static Dreamland* GetOrCreateInstance(JNIEnv *env) {
-            if(instance == nullptr) {
-                Initialize(env);
+
+        static Dreamland* GetOrCreateInstance(JNIEnv* env) {
+            if (instance == nullptr) {
+                Prepare(env);
             }
             return instance;
         }
 
-        static bool OnAppProcessStart();
-        static bool OnSystemServerStart();
+        static bool OnAppProcessStart(JNIEnv* env);
 
-        JavaVM *GetJavaVM() {
+        static bool OnSystemServerStart(JNIEnv* env);
+
+        JavaVM* GetJavaVM() {
             return java_vm;
         }
 
-        JNIEnv *GetJNIEnv();
+        JNIEnv* GetJNIEnv();
 
     private:
-        bool javaInit(JNIEnv *env);
-        bool InitializeImpl(JNIEnv *env);
+        bool javaInit(JNIEnv* env);
+
+        bool InitializeImpl(JNIEnv* env);
+
         Dreamland();
+
         ~Dreamland();
 
-        static Dreamland *instance;
-        JavaVM *java_vm;
+        static Dreamland* instance;
+        JavaVM* java_vm;
         jclass java_main_class;
         jmethodID onSystemServerStart;
         jmethodID onAppProcessStart;
 
-        static constexpr const char *DREAMLAND_BASE = "/data/dreamland/";
-        static constexpr const char *DREAMLAND_CORE_JAR = "/system/framework/dreamland.jar";
-        static constexpr const char *DREAMLAND_FLAG_DISABLE_FILE = "/data/dreamland/disable";
+        static constexpr const char* kBaseDir = "/data/misc/dreamland/";
+        static constexpr const char* kCoreJarFile = "/system/framework/dreamland.jar";
+        static constexpr const char* kDisableFile = "/data/misc/dreamland/disable";
         DISALLOW_COPY_AND_ASSIGN(Dreamland);
     };
 }

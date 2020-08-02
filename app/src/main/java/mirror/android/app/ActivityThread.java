@@ -1,21 +1,21 @@
 package mirror.android.app;
 
-import com.canyie.dreamland.utils.reflect.Reflection;
+import top.canyie.dreamland.utils.reflect.Reflection;
 
 /**
  * Mirror class of android.app.ActivityThread
  * @author canyie
  */
-@SuppressWarnings({"unused", "unchecked"})
+@SuppressWarnings({"unused"})
 public final class ActivityThread {
     public static final String NAME = "android.app.ActivityThread";
-    public static final Reflection REF = Reflection.on(NAME);
+    public static final Reflection<?> REF = Reflection.on(NAME);
 
     public static final Reflection.MethodWrapper currentActivityThread = REF.method("currentActivityThread");
     public static final Reflection.MethodWrapper getApplication = REF.method("getApplication");
 
     private ActivityThread() {
-        throw new InstantiationError("Mirror class android.app.ActivityThread");
+        throw new InstantiationError("Mirror class " + NAME);
     }
 
     /**
@@ -29,7 +29,7 @@ public final class ActivityThread {
         public static final Reflection.FieldWrapper appInfo = REF.field("appInfo");
 
         private AppBindData() {
-            throw new InstantiationError("Mirror class android.app.ActivityThread$AppBindData");
+            throw new InstantiationError("Mirror class " + NAME);
         }
     }
 }

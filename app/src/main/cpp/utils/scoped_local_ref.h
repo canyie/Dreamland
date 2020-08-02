@@ -10,6 +10,9 @@
 template<typename T>
 class ScopedLocalRef {
 public:
+    ScopedLocalRef(JNIEnv *env) : env(env), mLocalRef(nullptr) {
+    }
+
     ScopedLocalRef(JNIEnv *env, T localRef) : env(env), mLocalRef(localRef) {
     }
 

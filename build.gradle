@@ -22,7 +22,17 @@ allprojects {
     }
 }
 
+ext {
+    compileSdkVersion = 29
+    buildToolsVersion = '29.0.2'
+    minSdkVersion = 24
+    targetSdkVersion = 29 // useless in magisk module
+    versionCode = 2
+    versionName = '2.0'
+    minMagiskVersion = 17000
+    riruApiVersion = 5
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
-    delete "${rootDir}/export"
 }
