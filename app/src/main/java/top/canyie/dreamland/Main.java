@@ -46,7 +46,10 @@ public final class Main {
             final String[] preloadClasses = {
                     "mirror.android.app.ActivityThread",
                     "mirror.android.app.ActivityThread$AppBindData",
-                    "mirror.android.os.ServiceManager"
+                    "mirror.android.os.ServiceManager",
+                    "top.canyie.dreamland.core.Dreamland",
+                    "top.canyie.dreamland.ipc.IDreamlandManager$Stub",
+                    "top.canyie.dreamland.ipc.IDreamlandManager$Proxy"
             };
 
             for (String className : preloadClasses) {
@@ -118,16 +121,6 @@ public final class Main {
 
     public static void onSystemServerStart() {
         try {
-//            Dreamland.isSystem = true;
-//            Dreamland.processName = "android"; // it's actually system_server, but other functions return this as well
-//            Dreamland.packageName = "android";
-//            SandHook.addHookClass(ActivityThreadHooker.class);
-            /*
-             * SELinux会阻止我们在system_server里hook，所以暂时不hook
-             * type=1400 audit(0.0:5): avc: denied { execmem } for scontext=u:r:system_server:s0 tcontext=u:r:system_server:s0 tclass=process permissive=0
-             *
-             */
-
             // Start loading the properties asynchronously first to minimize time-consuming.
             DreamlandManagerService dms = DreamlandManagerService.start();
 
@@ -158,6 +151,7 @@ public final class Main {
                         Dreamland.processName = "android"; // it's actually system_server, but other functions return this as well
                         Dreamland.appInfo = null;
                         Dreamland.classLoader = cl;
+                        assert cl != null;
                         Pine.hook(cl.loadClass("com.android.server.SystemServer")
                                         .getDeclaredMethod("startBootstrapServices"),
                                 new MethodHook() {

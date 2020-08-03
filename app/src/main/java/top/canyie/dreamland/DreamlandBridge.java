@@ -20,11 +20,6 @@ import top.canyie.pine.Pine;
         return Dreamland.VERSION;
     }
 
-    public static boolean is64Bit() {
-        // return SandHook.is64Bit();
-        throw new IllegalStateException("Unimplemented");
-    }
-
     public static boolean compileMethod(@NonNull Member method) {
         return Pine.compile(method);
     }
