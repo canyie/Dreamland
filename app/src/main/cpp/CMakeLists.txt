@@ -45,13 +45,9 @@ find_library( # Sets the name of the path variable.
         # you want CMake to locate.
         log)
 
-add_library(sandhook STATIC IMPORTED)
 add_library(pine STATIC IMPORTED)
 
 get_filename_component(current_source_dir ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)
-set(export_dir "${current_source_dir}/../../../../export")
-get_filename_component(export_dir ${export_dir} ABSOLUTE)
-set_target_properties(sandhook PROPERTIES IMPORTED_LOCATION ${export_dir}/sandhook/${ANDROID_ABI}/libsandhook.a)
 
 set(external_dir "${current_source_dir}/../../../../external")
 get_filename_component(export_dir ${external_dir} ABSOLUTE)
@@ -65,7 +61,6 @@ target_link_libraries( # Specifies the target library.
         riru_dreamland
 
         ${log-lib}
-        sandhook
         pine)
 
 ENABLE_LANGUAGE(ASM)
