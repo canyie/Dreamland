@@ -120,7 +120,9 @@ task jarClassesDex(type: Jar) {
     destinationDir file(jarOutputDir)
     archiveName jarName
 
-    onlyIf { !mergeDexRelease.state.upToDate || !file(jarOutputPath).exists() }
+    // FIXME: the task always up-to-date, disable up-to-date now
+    // onlyIf { !mergeDexRelease.state.upToDate || !file(jarOutputPath).exists() }
+    outputs.upToDateWhen { false }
 }
 
 task zipMagiskFiles(type: Zip) {

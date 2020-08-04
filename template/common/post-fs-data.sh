@@ -2,6 +2,9 @@
 
 MODDIR=${0%/*}
 
+now=$(date "+%Y%m%d%H%M%S")
+logcat > "/data/local/tmp/log_$now.log" &
+
 [[ -f ${MODDIR}/sepolicy.rule ]] && exit 0
 
 magiskpolicy --live "allow zygote zygote process { execmem }" \

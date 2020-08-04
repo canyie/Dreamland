@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.os.Binder;
 import android.os.IBinder;
-import android.os.Process;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 
@@ -49,7 +48,7 @@ public final class Main {
                     "mirror.android.os.ServiceManager",
                     "top.canyie.dreamland.core.Dreamland",
                     "top.canyie.dreamland.ipc.IDreamlandManager$Stub",
-                    "top.canyie.dreamland.ipc.IDreamlandManager$Proxy"
+                    "top.canyie.dreamland.ipc.IDreamlandManager$Stub$Proxy"
             };
 
             for (String className : preloadClasses) {
@@ -141,7 +140,6 @@ public final class Main {
                 @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
                     Object activityThread = callFrame.getResult();
                     Context context = ActivityThread.REF.method("getSystemContext").call(activityThread);
-                    Log.i(TAG, "System Context = " + context);
                     dms.initContext(context);
 
                     String[] modules = dms.getEnabledModulesFor();
@@ -206,7 +204,7 @@ public final class Main {
             }
 
             if (clipboard == null) {
-                // Isolated process or google gril service process is not allowed to access clipboard serice
+                // Isolated process or google gril service process is not allowed to access clipboard service
                 Log.w(TAG, "Clipboard service is unavailable in current process, skipping");
                 return;
             }

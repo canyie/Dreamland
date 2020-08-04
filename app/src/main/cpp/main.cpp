@@ -55,8 +55,8 @@ EXPORT_C void onModuleLoaded() {
     xhook_enable_sigsegv_protection(0);
     bool success = xhook_register(".*\\libandroid_runtime.so$", "JNI_CreateJavaVM",
                                   reinterpret_cast<void*> (hook_JNI_CreateJavaVM),
-                                  reinterpret_cast<void**> (&orig_JNI_CreateJavaVM)) == 0 &&
-                   xhook_refresh(0) == 0;
+                                  reinterpret_cast<void**> (&orig_JNI_CreateJavaVM)) == 0
+                                          && xhook_refresh(0) == 0;
 
     if (LIKELY(success)) {
         xhook_clear();
