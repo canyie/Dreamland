@@ -10,6 +10,12 @@
 #define LIKELY(x) __builtin_expect(!!(x), 1)
 #define UNLIKELY(x) __builtin_expect(!!(x), 0)
 
+#ifdef __LP64__
+#define LP_SELECT(lp64, lp32) (lp64)
+#else
+#define LP_SELECT(lp64, lp32) (lp32)
+#endif
+
 // From Android Open Source Project:
 
 // A macro to disallow the copy constructor and operator= functions

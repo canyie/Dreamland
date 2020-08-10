@@ -10,10 +10,19 @@
 #include "../utils/well_known_classes.h"
 #include "../utils/jni_helper.h"
 #include "../pine.h"
+#include "resources_hook.h"
 
 using namespace dreamland;
 
 Dreamland* Dreamland::instance = nullptr;
+
+static jboolean Main_initXResourcesNative(JNIEnv* env, jclass, jobject classLoader) {
+    return static_cast<jboolean>(ResourcesHook::Init(env, classLoader));
+}
+
+static const JNINativeMethod gMainNativeMethods[] = {
+        {"initXResourcesNative", "(Ljava/lang/ClassLoader;)Z", (void*) Main_initXResourcesNative}
+};
 
 bool Dreamland::ShouldDisable() {
     if (UNLIKELY(access(kBaseDir, F_OK) != 0)) {
@@ -48,8 +57,7 @@ bool Dreamland::javaInit(JNIEnv* env) {
                     "(Ljava/lang/String;Ljava/lang/ClassLoader;)V");
             CHECK_FOR_JNI(constructor != nullptr,
                           "dalvik.system.PathClassLoader.<init>(java.lang.String, java.lang.ClassLoader) not found");
-            class_loader.Reset(
-                    env->NewObject(WellKnownClasses::dalvik_system_PathClassLoader, constructor,
+            class_loader.Reset(env->NewObject(WellKnownClasses::dalvik_system_PathClassLoader, constructor,
                                    dex_path.Get(), system_class_loader.Get()));
             if (JNIHelper::ExceptionCheck(env)) {
                 LOGE("can't load the core jar");
@@ -59,24 +67,22 @@ bool Dreamland::javaInit(JNIEnv* env) {
 
         // 2. Register native methods
         {
-            ScopedLocalRef<jstring> pine_class_name(env, "top.canyie.pine.Pine");
-            ScopedLocalRef<jstring> ruler_class_name(env, "top.canyie.pine.Ruler");
+            main_class.Reset(JNIHelper::FindClassFromClassLoader(env, "top.canyie.dreamland.Main", class_loader.Get()));
+            if (JNIHelper::ExceptionCheck(env)) {
+                LOGE("main_class not found");
+                return false;
+            }
+
+            env->RegisterNatives(main_class.Get(), gMainNativeMethods, NELEM(gMainNativeMethods));
+
             ScopedLocalRef<jclass> pine_class(env,
-                                              reinterpret_cast<jclass>(env->CallStaticObjectMethod(
-                                                      WellKnownClasses::java_lang_Class,
-                                                      WellKnownClasses::java_lang_Class_forName_String_boolean_ClassLoader,
-                                                      pine_class_name.Get(), JNI_TRUE,
-                                                      class_loader.Get())));
+                    JNIHelper::FindClassFromClassLoader(env, "top.canyie.pine.Pine", class_loader.Get()));
             if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
                 LOGE("Failed to load Pine class.");
                 return false;
             }
             ScopedLocalRef<jclass> ruler_class(env,
-                                               reinterpret_cast<jclass>(env->CallStaticObjectMethod(
-                                                       WellKnownClasses::java_lang_Class,
-                                                       WellKnownClasses::java_lang_Class_forName_String_boolean_ClassLoader,
-                                                       ruler_class_name.Get(), JNI_TRUE,
-                                                       class_loader.Get())));
+                    JNIHelper::FindClassFromClassLoader(env, "top.canyie.pine.Ruler", class_loader.Get()));
             if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
                 LOGE("Failed to load Ruler class.");
                 return false;
@@ -87,22 +93,8 @@ bool Dreamland::javaInit(JNIEnv* env) {
                 return false;
             }
         }
-
-        // 3. call java main()
-        ScopedLocalRef<jstring> main_class_name(env, "top.canyie.dreamland.Main");
-        main_class.Reset(reinterpret_cast<jclass>(env->CallStaticObjectMethod(
-                WellKnownClasses::java_lang_Class,
-                WellKnownClasses::java_lang_Class_forName_String_boolean_ClassLoader,
-                main_class_name.Get(), JNI_TRUE,
-                class_loader.Get())));
-        if (JNIHelper::ExceptionCheck(env)) {
-            LOGE("main_class not found");
-            return false;
-        }
-
-        main_class_name.Reset();
-        class_loader.Reset();
     }
+    // 3. call java main()
     jmethodID main = env->GetStaticMethodID(main_class.Get(), "init", "()I");
     onAppProcessStart = env->GetStaticMethodID(main_class.Get(), "onAppProcessStart", "()V");
     if (UNLIKELY(onAppProcessStart == nullptr)) {

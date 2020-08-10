@@ -1,8 +1,14 @@
 package top.canyie.dreamland;
 
 import android.annotation.SuppressLint;
+import android.app.AndroidAppHelper;
+import android.app.LoadedApk;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
+import android.content.res.XResources;
+import android.content.res.XTypedArraySuperClass;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -10,21 +16,28 @@ import android.util.SparseBooleanArray;
 
 import androidx.annotation.Keep;
 
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.ipc.BinderServiceProxy;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 import top.canyie.dreamland.ipc.DreamlandManagerService;
 import top.canyie.dreamland.utils.reflect.Reflection;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.List;
 
 import mirror.android.app.ActivityThread;
 import mirror.android.os.ServiceManager;
 import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
 import top.canyie.pine.callback.MethodHook;
+
+import android.content.res.XResourcesSuperClass;
 
 import static top.canyie.dreamland.core.Dreamland.TAG;
 
@@ -86,6 +99,12 @@ public final class Main {
 
             sTranslationCode = getAvailableTranslationCode();
 
+            try {
+                initXResources();
+            } catch (Throwable e) {
+                Log.e(TAG, "Resources hook initialize failed", e);
+                Dreamland.disableResourcesHook = true;
+            }
             return 0;
         } catch (Throwable e) {
             try {
@@ -94,6 +113,28 @@ public final class Main {
             }
         }
         return 1;
+    }
+
+    private static void initXResources() {
+        Resources res = Resources.getSystem();
+        RuntimeUtils.setSuperclass(XResourcesSuperClass.class, res.getClass());
+
+        Class<?> taClass = TypedArray.class;
+        try {
+            TypedArray ta = res.obtainTypedArray(res.getIdentifier("preloaded_drawables", "array", "android"));
+            taClass = ta.getClass();
+            ta.recycle();
+        } catch (Resources.NotFoundException e) {
+            XposedBridge.log(e);
+        }
+
+        RuntimeUtils.setSuperclass(XTypedArraySuperClass.class, taClass);
+
+        if (!initXResourcesNative(Main.class.getClassLoader())) {
+            throw new IllegalStateException("Resources hook init failed from native");
+        }
+
+        Runtime.getRuntime().gc();
     }
 
     private static int getAvailableTranslationCode() throws Exception {
@@ -136,7 +177,7 @@ public final class Main {
             //            -> return mSystemContext
             //    -> SystemServer.startBootstrapServices()
 
-            Pine.hook(ActivityThread.REF.unwrap().getDeclaredMethod("systemMain"), new MethodHook() {
+            Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
                 @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
                     Object activityThread = callFrame.getResult();
                     Context context = ActivityThread.REF.method("getSystemContext").call(activityThread);
@@ -199,7 +240,7 @@ public final class Main {
             try {
                 clipboard = ServiceManager.getService.callStatic(TARGET_BINDER_SERVICE_NAME);
             } catch (Exception e) {
-                Log.e(TAG, "Couldn't find clipboard service", e);
+                Log.e(TAG, "Couldn't find the clipboard service", e);
                 return;
             }
 
@@ -220,7 +261,7 @@ public final class Main {
                 return;
             }
 
-            Pine.hook(ActivityThread.REF.unwrap().getDeclaredMethod("handleBindApplication",
+            Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("handleBindApplication",
                     ActivityThread.AppBindData.REF.unwrap()),
                     new MethodHook() {
                         @Override public void beforeCall(Pine.CallFrame callFrame) {
@@ -232,7 +273,7 @@ public final class Main {
                         }
                     });
 
-            Pine.hook(Class.forName("android.app.LoadedApk").getDeclaredMethod("getClassLoader"),
+            Pine.hook(LoadedApk.class.getDeclaredMethod("getClassLoader"),
                     new MethodHook() {
                         @Override public void afterCall(Pine.CallFrame callFrame) {
                             ClassLoader classLoader = (ClassLoader) callFrame.getResult();
@@ -252,6 +293,13 @@ public final class Main {
                             }
                         }
                     });
+
+            try {
+                Dreamland.startResourcesHook(dm);
+            } catch (Throwable e) {
+                Log.e(TAG, "Start resources hook failed", e);
+                Dreamland.disableResourcesHook = true;
+            }
         } catch (Throwable e) {
             try {
                 Log.e(TAG, "Dreamland error in app process", e);
@@ -260,5 +308,6 @@ public final class Main {
         }
     }
 
-
+    @SuppressWarnings("JavaJniMissingFunction")
+    private static native boolean initXResourcesNative(ClassLoader classLoader);
 }

@@ -50,11 +50,39 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.annotation:annotation:1.1.0'
     implementation 'top.canyie.pine:core:0.1.8'
-    implementation 'top.canyie.pine:xposed:0.0.4'
+    implementation 'top.canyie.pine:xposed:0.0.5'
     implementation 'com.google.code.gson:gson:2.8.6'
+    compileOnly files('lib/hiddenapis-stub.jar')
     testImplementation 'junit:junit:4.12'
     //androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     //androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
+}
+
+def hiddenApiStubs = "$projectDir/lib/hiddenapis-stub.jar"
+
+preBuild.doLast {
+    if (!file(hiddenApiStubs).exists())
+        throw new IllegalStateException("Hidden api stubs not found. " +
+                "Please execute gradle task :hiddenapi-stubs:jarStubApis to generate it.")
+
+    def imlFile = file(project.name + ".iml")
+    println imlFile
+    try {
+        def parsedXml = new groovy.util.XmlParser().parse(imlFile)
+        def jdkNode = parsedXml.component[1].orderEntry.find { it.'@type' == 'jdk' }
+        parsedXml.component[1].remove(jdkNode)
+        def sdkString = "Android API $rootProject.ext.compileSdkVersion Platform"
+        new groovy.util.Node(parsedXml.component[1], 'orderEntry', ['type': 'jdk', 'jdkName': sdkString, 'jdkType': 'Android SDK'])
+        groovy.xml.XmlUtil.serialize(parsedXml, new FileOutputStream(imlFile))
+    } catch (FileNotFoundException ignored) {
+        // nop, iml not found
+    }
+}
+
+afterEvaluate {
+    tasks.withType(JavaCompile) {
+        options.compilerArgs.add("-Xbootclasspath/p:$hiddenApiStubs")
+    }
 }
 
 def moduleProp = [

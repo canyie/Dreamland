@@ -1,0 +1,25 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+task jarStubApis(type: Jar, dependsOn: build) {
+    baseName 'hiddenapis-stub'
+    from("$projectDir/build/intermediates/javac/release/classes/")
+    destinationDir file("$rootDir/app/lib/")
+    exclude 'BuildConfig.class', 'R.class'
+    exclude { it.name.startsWith('R$') }
+}
