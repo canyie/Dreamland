@@ -13,6 +13,7 @@ Dreamland is a framework to use Xposed-style modules.
 
 ## Credits
 - [Xposed](https://github.com/rovo89/Xposed): the original Xposed framework
+- [EdXposed](https://github.com/ElderDrivers/EdXposed): Elder driver Xposed Framework.
 - [Magisk](https://github.com/topjohnwu/Magisk): makes all these possible
 - [Riru](https://github.com/RikkaApps/Riru): provides a way to inject codes into zygote process
 - [Pine](https://github.com/canyie/pine): ART hooking library 

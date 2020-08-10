@@ -10,6 +10,7 @@
 
 ## 鸣谢
 - [Xposed](https://github.com/rovo89/Xposed): 原版Xposed框架
+- [EdXposed](https://github.com/ElderDrivers/EdXposed): Elder driver版Xposed框架.
 - [Magisk](https://github.com/topjohnwu/Magisk/): 让这一切成为可能
 - [Riru](https://github.com/RikkaApps/Riru): 提供一种方法注入zygote进程
 - [Pine](https://github.com/canyie/pine): ART hook库
