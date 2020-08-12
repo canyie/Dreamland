@@ -33,7 +33,9 @@ import de.robv.android.xposed.XposedBridge.CopyOnWriteSortedSet;
 import de.robv.android.xposed.callbacks.XC_LayoutInflated;
 import de.robv.android.xposed.callbacks.XC_LayoutInflated.LayoutInflatedParam;
 import de.robv.android.xposed.callbacks.XCallback;
-import top.canyie.dreamland.core.Dreamland;
+
+import xposed.dummy.XResourcesSuperClass;
+import xposed.dummy.XTypedArraySuperClass;
 
 import static de.robv.android.xposed.XposedHelpers.decrementMethodDepth;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
@@ -1147,6 +1149,7 @@ public class XResources extends XResourcesSuperClass {
 		return false;
 	}
 
+	@SuppressWarnings("JavaJniMissingFunction")
 	private static native void rewriteXmlReferencesNative(long parserPtr, XResources origRes, Resources repRes);
 
 	/**
@@ -1273,8 +1276,9 @@ public class XResources extends XResourcesSuperClass {
 	 * @hide
 	 */
 	public static class XTypedArray extends XTypedArraySuperClass {
-		XTypedArray(Resources resources) {
-			super(resources);
+		/** Dummy, never called (objects are transfter to this class only) */
+		private XTypedArray() {
+			throw new RuntimeException("Stub!");
 		}
 
 		@Override

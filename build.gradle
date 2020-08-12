@@ -28,7 +28,7 @@ ext {
     minSdkVersion = 24
     targetSdkVersion = 29 // useless in magisk module
     versionCode = 2
-    versionName = '2.0_beta3'
+    versionName = '2.0_beta4'
     minMagiskVersion = 17000
     riruApiVersion = 5
 }

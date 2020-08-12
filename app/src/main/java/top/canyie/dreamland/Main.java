@@ -1,14 +1,12 @@
 package top.canyie.dreamland;
 
 import android.annotation.SuppressLint;
-import android.app.AndroidAppHelper;
 import android.app.LoadedApk;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XResources;
-import android.content.res.XTypedArraySuperClass;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -16,20 +14,22 @@ import android.util.SparseBooleanArray;
 
 import androidx.annotation.Keep;
 
-import de.robv.android.xposed.XC_MethodHook;
+import dalvik.system.BaseDexClassLoader;
+import dalvik.system.PathClassLoader;
+import de.robv.android.xposed.DexCreator;
 import de.robv.android.xposed.XposedBridge;
 import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.ipc.BinderServiceProxy;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 import top.canyie.dreamland.ipc.DreamlandManagerService;
+import top.canyie.dreamland.utils.RuntimeUtils;
 import top.canyie.dreamland.utils.reflect.Reflection;
 
-import java.lang.ref.WeakReference;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.List;
 
 import mirror.android.app.ActivityThread;
 import mirror.android.os.ServiceManager;
@@ -37,8 +37,7 @@ import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
 import top.canyie.pine.callback.MethodHook;
 
-import android.content.res.XResourcesSuperClass;
-
+import static de.robv.android.xposed.XposedHelpers.setObjectField;
 import static top.canyie.dreamland.core.Dreamland.TAG;
 
 /**
@@ -55,6 +54,16 @@ public final class Main {
     public static int init() {
         try {
             ClassLoader classLoader = Main.class.getClassLoader();
+
+            // Try initialize resources hook first.
+            // This needs to be performed as early as possible to avoid trying to load XResources when XResourcesSuperClass is not loaded.
+            try {
+                initXResources(classLoader);
+            } catch (Throwable e) {
+                Log.e(TAG, "Resources hook initialize failed", e);
+                Dreamland.disableResourcesHook = true;
+            }
+
             final String[] preloadClasses = {
                     "mirror.android.app.ActivityThread",
                     "mirror.android.app.ActivityThread$AppBindData",
@@ -99,12 +108,6 @@ public final class Main {
 
             sTranslationCode = getAvailableTranslationCode();
 
-            try {
-                initXResources();
-            } catch (Throwable e) {
-                Log.e(TAG, "Resources hook initialize failed", e);
-                Dreamland.disableResourcesHook = true;
-            }
             return 0;
         } catch (Throwable e) {
             try {
@@ -115,9 +118,9 @@ public final class Main {
         return 1;
     }
 
-    private static void initXResources() {
+    private static void initXResources(ClassLoader myCL) throws Exception {
         Resources res = Resources.getSystem();
-        RuntimeUtils.setSuperclass(XResourcesSuperClass.class, res.getClass());
+        String dexForXResources = ensureSuperDexFor("XResources", res.getClass(), Resources.class);
 
         Class<?> taClass = TypedArray.class;
         try {
@@ -128,13 +131,25 @@ public final class Main {
             XposedBridge.log(e);
         }
 
-        RuntimeUtils.setSuperclass(XTypedArraySuperClass.class, taClass);
+        String dexForXTypedArray = ensureSuperDexFor("XTypedArray", taClass, TypedArray.class);
 
-        if (!initXResourcesNative(Main.class.getClassLoader())) {
+        // Inject a ClassLoader for the created classes as parent of XposedBridge's ClassLoader.
+        RuntimeUtils.injectDex(myCL, dexForXResources + File.pathSeparator + dexForXTypedArray);
+
+        // native initialize resources hook.
+        // this must be executed after XResourcesSuperClass is created,
+        // because initXResourcesNative will initialize XResources.
+        if (!initXResourcesNative(myCL)) {
             throw new IllegalStateException("Resources hook init failed from native");
         }
+    }
 
-        Runtime.getRuntime().gc();
+    @SuppressLint("SetWorldReadable")
+    private static String ensureSuperDexFor(String clz, Class<?> realSuperClz, Class<?> topClz) throws IOException {
+        RuntimeUtils.makeExtendable(realSuperClz);
+        File dexFile = DexCreator.ensure(clz, realSuperClz, topClz);
+        dexFile.setReadable(true, false);
+        return dexFile.getAbsolutePath();
     }
 
     private static int getAvailableTranslationCode() throws Exception {

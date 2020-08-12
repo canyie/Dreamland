@@ -6,6 +6,7 @@ import androidx.annotation.Nullable;
 import top.canyie.dreamland.utils.Preconditions;
 
 import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -53,6 +54,10 @@ public final class Reflection<T> {
         return method(clazz, name, parameterTypes);
     }
 
+    public static MethodWrapper method(@NonNull String className, @NonNull String name, @Nullable Class<?>... parameterTypes) {
+        return method(findClass(className), name, parameterTypes);
+    }
+
     public static MethodWrapper method(@NonNull Class<?> clazz, @NonNull String name, @Nullable Class<?>... parameterTypes) {
         return wrap(getMethod(clazz, name, parameterTypes));
     }
@@ -66,6 +71,10 @@ public final class Reflection<T> {
         return field(clazz, name);
     }
 
+    public static FieldWrapper field(@NonNull String className, @NonNull String name) {
+        return field(findClass(className), name);
+    }
+
     public static FieldWrapper field(@NonNull Class<?> clazz, @NonNull String name) {
         return wrap(getField(clazz, name));
     }
@@ -77,6 +86,10 @@ public final class Reflection<T> {
 
     public ConstructorWrapper<T> constructor(@Nullable Class<?>... parameterTypes) {
         return wrap(getConstructor(clazz, parameterTypes));
+    }
+
+    public T[] array(int length) {
+        return (T[]) Array.newInstance(clazz, length);
     }
 
     @Nullable

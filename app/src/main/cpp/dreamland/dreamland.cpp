@@ -4,6 +4,7 @@
 
 #include <dlfcn.h>
 #include <unistd.h>
+#include <string>
 #include "dreamland.h"
 #include "../utils/log.h"
 #include "../utils/scoped_local_ref.h"

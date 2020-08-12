@@ -4,7 +4,7 @@ import android.graphics.drawable.Drawable;
 
 public class TypedArray {
 	/** Only for API stubs creation, DO NOT USE! */
-	/*package*/ TypedArray() {
+	public TypedArray() {
 		throw new UnsupportedOperationException("Stub!");
 	}
 

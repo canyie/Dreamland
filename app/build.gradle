@@ -89,8 +89,8 @@ def moduleProp = [
         id: 'dreamland',
         name: 'Dreamland',
         author: 'canyie',
-        version: rootProject.ext.versionCode,
-        versionName: rootProject.ext.versionName,
+        version: rootProject.ext.versionName,
+        versionCode: rootProject.ext.versionCode,
         description: 'A third-party Xposed framework.',
         minMagisk: rootProject.ext.minMagiskVersion,
         api: rootProject.ext.riruApiVersion
@@ -156,7 +156,7 @@ task jarClassesDex(type: Jar) {
 task zipMagiskFiles(type: Zip) {
     from file(tempTemplatePath)
     destinationDir file(releasePath)
-    baseName "magisk-${moduleProp['id']}-v${moduleProp['versionName']}"
+    baseName "magisk-${moduleProp['id']}-v${moduleProp['version']}"
 }
 
 task assembleMagiskRelease(type: GradleBuild, dependsOn: build) {
