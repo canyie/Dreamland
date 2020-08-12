@@ -26,7 +26,7 @@ public class DexCreator {
 
     /** Returns the default dex file name for the class. */
     public static File getDefaultFile(String childClz) {
-        return new File(DALVIK_CACHE, "xposed_" + childClz.substring(childClz.lastIndexOf('.') + 1) + ".dex");
+        return new File(DALVIK_CACHE, "dreamland_" + childClz.substring(childClz.lastIndexOf('.') + 1) + ".dex");
     }
 
     /**
