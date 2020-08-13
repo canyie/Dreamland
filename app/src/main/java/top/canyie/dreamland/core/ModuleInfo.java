@@ -1,6 +1,5 @@
 package top.canyie.dreamland.core;
 
-
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 
@@ -20,6 +19,9 @@ import dalvik.system.PathClassLoader;
 @Keep public final class ModuleInfo {
 //    public String name;
     public String path;
+    //public boolean enabled;
+    ///** Collection of this module enabled for */
+    //public Set<String> enabledFor;
 
     // TODO: Support for Module Activation Scope
 

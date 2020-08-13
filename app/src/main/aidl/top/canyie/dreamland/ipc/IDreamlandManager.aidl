@@ -14,4 +14,6 @@ interface IDreamlandManager {
     void reload();
     boolean isResourcesHookEnabled();
     void setResourcesHookEnabled(boolean enabled);
+    boolean isGlobalModeEnabled();
+    void setGlobalModeEnabled(boolean enabled);
 }

@@ -29,12 +29,14 @@ import java.util.Set;
 public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private static final String TAG = "DreamlandManagerService";
     private static final String SAFE_MODE_FILENAME = "safemode";
+    private static final String GLOBAL_MODE_FILENAME = "global_mode";
     private static final String ENABLE_RESOURCES_FILENAME = "enable_resources";
     private static final int ROOT_UID = 0;
     private static final int SYSTEM_UID = 1000;
     private static final int SHELL_UID = 2000;
 
     private boolean mSafeModeEnabled;
+    private boolean mGlobalModeEnabled;
     private boolean mResourcesHookEnabled;
 
     private Context mContext;
@@ -50,6 +52,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mAppManager = new AppManager();
         mAppManager.startLoad();
         mSafeModeEnabled = new File(Dreamland.BASE_DIR, SAFE_MODE_FILENAME).exists();
+        mGlobalModeEnabled = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME).exists();
         mResourcesHookEnabled = new File(Dreamland.BASE_DIR, ENABLE_RESOURCES_FILENAME).exists();
     }
 
@@ -89,7 +92,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
             return true;
         }
         if (mSafeModeEnabled) return false;
-        return mAppManager.isEnabled(calling);
+        return mGlobalModeEnabled || mAppManager.isEnabled(calling);
     }
 
     @Override public String[] getEnabledApps() {
@@ -195,6 +198,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mModuleManager.startLoad();
         mAppManager.startLoad();
         mSafeModeEnabled = new File(Dreamland.BASE_DIR, SAFE_MODE_FILENAME).exists();
+        mGlobalModeEnabled = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME).exists();
         mResourcesHookEnabled = new File(Dreamland.BASE_DIR, ENABLE_RESOURCES_FILENAME).exists();
     }
 
@@ -217,6 +221,25 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     }
 
+    @Override public boolean isGlobalModeEnabled() {
+        return mGlobalModeEnabled;
+    }
+
+    @Override public void setGlobalModeEnabled(boolean enabled) {
+        enforceManager("setGlobalModeEnabled");
+        mGlobalModeEnabled = enabled;
+        File enableFile = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME);
+        try {
+            boolean success = enabled ? enableFile.createNewFile() : enableFile.delete();
+            if (!success) {
+                String action = enabled ? "create " : "delete ";
+                Log.e(TAG, "Failed to " + action + enableFile.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to create " + enableFile.getAbsolutePath(), e);
+        }
+    }
+
     private String getCallingPackage() {
         int callingUid = Binder.getCallingUid();
         return callingUid == SYSTEM_UID
@@ -224,7 +247,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     }
 
     private boolean isCallingAppEnabled() {
-        return mAppManager.isEnabled(getCallingPackage());
+        return mGlobalModeEnabled || mAppManager.isEnabled(getCallingPackage());
     }
 
     private void enforceManager(String op) {
