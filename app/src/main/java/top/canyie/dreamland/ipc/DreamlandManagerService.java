@@ -7,20 +7,16 @@ import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Binder;
-import android.os.RemoteException;
 import android.util.Log;
+import android.util.LruCache;
 
 import top.canyie.dreamland.core.AppManager;
 import top.canyie.dreamland.core.Dreamland;
-import top.canyie.dreamland.core.ModuleInfo;
 import top.canyie.dreamland.core.ModuleManager;
 import top.canyie.dreamland.utils.DLog;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -44,7 +40,13 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private final ModuleManager mModuleManager;
 
     private volatile String[] mEnabledAppCache;
-    private volatile String[] mEnabledModuleCache;
+    private final LruCache<String, String[]> mEnabledModuleCache = new LruCache<String, String[]>(128) {
+        @Override protected String[] create(String key) {
+            Set<String> set = mModuleManager.getEnabledFor(key);
+            return set.toArray(new String[set.size()]);
+        }
+    };
+    private volatile String[] mAllEnabledModuleCache;
 
     private DreamlandManagerService() {
         mModuleManager = new ModuleManager();
@@ -92,7 +94,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
             return true;
         }
         if (mSafeModeEnabled) return false;
-        return mGlobalModeEnabled || mAppManager.isEnabled(calling);
+        return isAppEnabled(calling);
     }
 
     @Override public String[] getEnabledApps() {
@@ -119,36 +121,28 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     @Override public String[] getEnabledModulesFor() {
         if (mSafeModeEnabled) return null;
-        if (!isCallingAppEnabled()) return null;
-        String[] enabledFor = mEnabledModuleCache;
-        if (enabledFor == null) {
-            synchronized (mModuleManager) {
-                if (mEnabledModuleCache == null) {
-                    Collection<ModuleInfo> allEnabled = mModuleManager.getEnabledModuleList();
-                    mEnabledModuleCache = enabledFor = new String[allEnabled.size()];
-                    Iterator<ModuleInfo> iterator = allEnabled.iterator();
-                    int i = 0;
-                    while (iterator.hasNext()) {
-                        ModuleInfo current = iterator.next();
-                        enabledFor[i] = current.path;
-                        i++;
-                    }
-                } else {
-                    enabledFor = mEnabledModuleCache;
-                }
-            }
-        }
-        return enabledFor;
+        String calling = getCallingPackage();
+        if (!isAppEnabled(calling)) return null;
+        return mEnabledModuleCache.get(calling);
     }
 
     @Override public String[] getAllEnabledModules() {
         enforceManagerOrEnabledModule("getAllEnabledModules");
-        Map<String, ModuleInfo> map = mModuleManager.getEnabledModules();
-        return map.keySet().toArray(new String[map.size()]);
+        String[] modules = mAllEnabledModuleCache;
+        if (modules == null) {
+            synchronized (mModuleManager) {
+                if (mAllEnabledModuleCache == null) {
+                    Set<String> set = mModuleManager.getAllEnabled();
+                    modules = mAllEnabledModuleCache = set.toArray(new String[set.size()]);
+                } else {
+                    modules = mAllEnabledModuleCache;
+                }
+            }
+        }
+        return modules;
     }
 
-    @Override
-    public void setModuleEnabled(String packageName, boolean enabled) {
+    @Override public void setModuleEnabled(String packageName, boolean enabled) {
         enforceManager("setModuleEnabled");
         if (enabled) {
             try {
@@ -162,7 +156,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
                         return;
                     }
                 }
-                mModuleManager.enable(packageName, new ModuleInfo(apkPath));
+                mModuleManager.enable(packageName, apkPath);
             } catch (PackageManager.NameNotFoundException e) {
                 DLog.e(TAG, "Attempting to enable a non-existing module " + packageName, e);
                 return;
@@ -170,7 +164,11 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         } else {
             mModuleManager.disable(packageName);
         }
-        mEnabledModuleCache = null;
+        synchronized (mModuleManager) {
+            // Invalidate caches.
+            mAllEnabledModuleCache = null;
+            mEnabledModuleCache.evictAll();
+        }
     }
 
     @Override public boolean isSafeModeEnabled() {
@@ -240,14 +238,29 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     }
 
+    @Override public String[] getEnabledAppsFor(String module) {
+        enforceManager("getEnabledAppsFor");
+        synchronized (mModuleManager) {
+            return mModuleManager.getEnabledAppsFor(module);
+        }
+    }
+
+    @Override public void setEnabledAppsFor(String module, String[] apps) {
+        enforceManager("setEnabledAppsFor");
+        synchronized (mModuleManager) {
+            mModuleManager.setEnabledFor(module, apps);
+            mEnabledModuleCache.evictAll();
+        }
+    }
+
     private String getCallingPackage() {
         int callingUid = Binder.getCallingUid();
         return callingUid == SYSTEM_UID
                 ? "android" : mContext.getPackageManager().getNameForUid(callingUid);
     }
 
-    private boolean isCallingAppEnabled() {
-        return mGlobalModeEnabled || mAppManager.isEnabled(getCallingPackage());
+    private boolean isAppEnabled(String packageName) {
+        return mGlobalModeEnabled || mAppManager.isEnabled(packageName);
     }
 
     private void enforceManager(String op) {
