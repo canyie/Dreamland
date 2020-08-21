@@ -89,14 +89,8 @@ public final class Dreamland {
                 }
                 return;
             }
-            String[] modules;
-            try {
-                modules = manager.getEnabledModulesFor();
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failure from remote dreamland service", e);
-                return;
-            }
-            loadXposedModules(modules);
+            Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
+            PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
         }
     }
 
@@ -109,7 +103,6 @@ public final class Dreamland {
             //Log.d(TAG, "No module needed to load, skip.");
             return;
         }
-        Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
 
         for (String module : modules) {
             if (TextUtils.isEmpty(module)) {
@@ -120,7 +113,6 @@ public final class Dreamland {
             Log.i(TAG, "Loading xposed module " + module);
             PineXposed.loadModule(new File(module));
         }
-        PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
     }
 
     public static void startResourcesHook(IDreamlandManager manager) throws Exception {

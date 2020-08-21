@@ -10,6 +10,7 @@ import android.content.res.TypedArray;
 import android.content.res.XResources;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 
@@ -277,6 +278,14 @@ public final class Main {
                 return;
             }
 
+            String[] modules;
+            try {
+                modules = dm.getEnabledModulesFor();
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failure from remote dreamland service", e);
+                return;
+            }
+
             Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("handleBindApplication",
                     ActivityThread.AppBindData.REF.unwrap()),
                     new MethodHook() {
@@ -328,6 +337,8 @@ public final class Main {
                 Log.e(TAG, "Start resources hook failed", e);
                 Dreamland.disableResourcesHook = true;
             }
+
+            Dreamland.loadXposedModules(modules);
         } catch (Throwable e) {
             try {
                 Log.e(TAG, "Dreamland error in app process", e);
