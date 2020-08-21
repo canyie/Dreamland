@@ -122,7 +122,9 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     @Override public String[] getEnabledModulesFor() {
         if (mSafeModeEnabled) return null;
         String calling = getCallingPackage();
-        if (!isAppEnabled(calling)) return null;
+        if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
+                || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)
+                || !isAppEnabled(calling)) return null;
         return mEnabledModuleCache.get(calling);
     }
 
@@ -179,16 +181,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     @Override public void setSafeModeEnabled(boolean enabled) {
         enforceManager("setSafeModeEnabled");
         mSafeModeEnabled = enabled;
-        File safeModeFile = new File(Dreamland.BASE_DIR, SAFE_MODE_FILENAME);
-        try {
-            boolean success = enabled ? safeModeFile.createNewFile() : safeModeFile.delete();
-            if (!success) {
-                String action = enabled ? "create " : "delete ";
-                Log.e(TAG, "Failed to " + action + safeModeFile.getAbsolutePath());
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to create " + safeModeFile.getAbsolutePath(), e);
-        }
+        touch(SAFE_MODE_FILENAME, enabled);
     }
 
     @Override public void reload() {
@@ -207,16 +200,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     @Override public void setResourcesHookEnabled(boolean enabled) {
         enforceManager("setResourcesHookEnabled");
         mResourcesHookEnabled = enabled;
-        File enableFile = new File(Dreamland.BASE_DIR, ENABLE_RESOURCES_FILENAME);
-        try {
-            boolean success = enabled ? enableFile.createNewFile() : enableFile.delete();
-            if (!success) {
-                String action = enabled ? "create " : "delete ";
-                Log.e(TAG, "Failed to " + action + enableFile.getAbsolutePath());
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to create " + enableFile.getAbsolutePath(), e);
-        }
+        touch(ENABLE_RESOURCES_FILENAME, enabled);
     }
 
     @Override public boolean isGlobalModeEnabled() {
@@ -226,16 +210,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     @Override public void setGlobalModeEnabled(boolean enabled) {
         enforceManager("setGlobalModeEnabled");
         mGlobalModeEnabled = enabled;
-        File enableFile = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME);
-        try {
-            boolean success = enabled ? enableFile.createNewFile() : enableFile.delete();
-            if (!success) {
-                String action = enabled ? "create " : "delete ";
-                Log.e(TAG, "Failed to " + action + enableFile.getAbsolutePath());
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to create " + enableFile.getAbsolutePath(), e);
-        }
+        touch(GLOBAL_MODE_FILENAME, enabled);
     }
 
     @Override public String[] getEnabledAppsFor(String module) {
@@ -261,6 +236,18 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     private boolean isAppEnabled(String packageName) {
         return mGlobalModeEnabled || mAppManager.isEnabled(packageName);
+    }
+
+    private void touch(String filename, boolean enabled) {
+        File file = new File(Dreamland.BASE_DIR, filename);
+        try {
+            boolean success = enabled ? file.createNewFile() : file.delete();
+            if (!success) {
+                Log.e(TAG, "Failed to " + (enabled ? "create " : "delete ") + file.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to create " + file.getAbsolutePath(), e);
+        }
     }
 
     private void enforceManager(String op) {

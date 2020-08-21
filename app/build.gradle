@@ -111,6 +111,7 @@ task copyMagiskTemplate(type: Copy) {
     from file("$rootDir/template")
     into file(tempTemplatePath)
 
+    inputs.properties moduleProp
     doLast {
         file("$tempTemplatePath/module.prop").withWriter('utf-8') { writer ->
             moduleProp.each { name, value -> writer.write("$name=$value\n") }

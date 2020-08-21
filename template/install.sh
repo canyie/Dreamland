@@ -162,7 +162,7 @@ on_install() {
       ui_print "- It is not compatible with current framework version"
     else
       ui_print "- Dreamland Manager not found"
-      ui_print "- You cannot manage Dreamland configuration"
+      ui_print "- You cannot manage Dreamland configurations"
     fi
     ui_print "- Please install new Dreamland Manager"
   fi

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.LoadedApk;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.content.res.CompatibilityInfo;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XResources;
@@ -280,15 +281,27 @@ public final class Main {
                     ActivityThread.AppBindData.REF.unwrap()),
                     new MethodHook() {
                         @Override public void beforeCall(Pine.CallFrame callFrame) {
+                            android.app.ActivityThread activityThread = (android.app.ActivityThread) callFrame.thisObject;
                             Object appBindData = callFrame.args[0];
-                            Dreamland.processName = ActivityThread.AppBindData.processName.getValue(appBindData);
                             ApplicationInfo appInfo = ActivityThread.AppBindData.appInfo.getValue(appBindData);
-                            Dreamland.appInfo = appInfo;
-                            Dreamland.packageName = appInfo.packageName;
+                            CompatibilityInfo compatInfo = ActivityThread.AppBindData.compatInfo.getValue(appBindData);
+                            ActivityThread.mBoundApplication.setValue(activityThread, appBindData);
+                            LoadedApk loadedApk = activityThread.getPackageInfoNoCheck(appInfo, compatInfo);
+                            XResources.setPackageNameForResDir(appInfo.packageName, loadedApk.getResDir());
+
+                            try {
+                                Dreamland.appInfo = appInfo;
+                                Dreamland.packageName = appInfo.packageName.equals("android") ? "system" : appInfo.packageName;
+                                Dreamland.processName = ActivityThread.AppBindData.processName.getValue(appBindData);
+                                Dreamland.classLoader = loadedApk.getClassLoader();
+                                Dreamland.ready(dm);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Install hooks failed", e);
+                            }
                         }
                     });
 
-            Pine.hook(LoadedApk.class.getDeclaredMethod("getClassLoader"),
+            /*Pine.hook(LoadedApk.class.getDeclaredMethod("getClassLoader"),
                     new MethodHook() {
                         @Override public void afterCall(Pine.CallFrame callFrame) {
                             ClassLoader classLoader = (ClassLoader) callFrame.getResult();
@@ -307,7 +320,7 @@ public final class Main {
                                 }
                             }
                         }
-                    });
+                    });*/
 
             try {
                 Dreamland.startResourcesHook(dm);
