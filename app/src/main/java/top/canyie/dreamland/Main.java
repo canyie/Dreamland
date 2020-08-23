@@ -9,15 +9,16 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XResources;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemProperties;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 
 import androidx.annotation.Keep;
 
-import dalvik.system.BaseDexClassLoader;
-import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.DexCreator;
 import de.robv.android.xposed.XposedBridge;
 import top.canyie.dreamland.core.Dreamland;
@@ -39,7 +40,6 @@ import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
 import top.canyie.pine.callback.MethodHook;
 
-import static de.robv.android.xposed.XposedHelpers.setObjectField;
 import static top.canyie.dreamland.core.Dreamland.TAG;
 
 /**
@@ -52,6 +52,7 @@ public final class Main {
     private static boolean classLoaderReady;
     //private static int sWebViewZygoteUid = -1;
     private static int sTranslationCode = IBinder.LAST_CALL_TRANSACTION;
+    private static boolean mainZygote;
 
     public static int init() {
         try {
@@ -109,7 +110,14 @@ public final class Main {
             }*/
 
             sTranslationCode = getAvailableTranslationCode();
-
+            String realApi = SystemProperties.get( "ro.product.cpu.abi", "");
+            if (TextUtils.isEmpty(realApi)) {
+                Log.e(TAG, "System property 'ro.product.cpu.abi' is missing on the device");
+                mainZygote = false;
+            } else {
+                // For 32-bit process running on 64-bit device, Build.CPU_ABI is 32-bit api
+                mainZygote = Build.CPU_ABI.equalsIgnoreCase(realApi);
+            }
             return 0;
         } catch (Throwable e) {
             try {
@@ -212,7 +220,7 @@ public final class Main {
                                         .getDeclaredMethod("startBootstrapServices"),
                                 new MethodHook() {
                                     @Override public void beforeCall(Pine.CallFrame callFrame) {
-                                        Dreamland.loadXposedModules(modules);
+                                        Dreamland.loadXposedModules(modules, true);
                                     }
                                 });
                     }
@@ -338,7 +346,7 @@ public final class Main {
                 Dreamland.disableResourcesHook = true;
             }
 
-            Dreamland.loadXposedModules(modules);
+            Dreamland.loadXposedModules(modules, mainZygote);
         } catch (Throwable e) {
             try {
                 Log.e(TAG, "Dreamland error in app process", e);

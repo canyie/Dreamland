@@ -50,7 +50,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.annotation:annotation:1.1.0'
     implementation 'top.canyie.pine:core:0.1.8'
-    implementation 'top.canyie.pine:xposed:0.0.5'
+    implementation 'top.canyie.pine:xposed:0.0.6'
     implementation 'com.google.code.gson:gson:2.8.6'
     compileOnly files('lib/hiddenapis-stub.jar')
     testImplementation 'junit:junit:4.12'

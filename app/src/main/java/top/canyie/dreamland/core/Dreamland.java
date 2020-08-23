@@ -98,7 +98,7 @@ public final class Dreamland {
         return classLoader != null && !hooked;
     }
 
-    public static void loadXposedModules(String[] modules) {
+    public static void loadXposedModules(String[] modules, boolean mainZygote) {
         if (modules == null || modules.length == 0) {
             //Log.d(TAG, "No module needed to load, skip.");
             return;
@@ -111,7 +111,8 @@ public final class Dreamland {
                 continue;
             }
             Log.i(TAG, "Loading xposed module " + module);
-            PineXposed.loadModule(new File(module));
+            // Only main zygote (non-secondary zygote) will starts the system server
+            PineXposed.loadModule(new File(module), mainZygote);
         }
     }
 
