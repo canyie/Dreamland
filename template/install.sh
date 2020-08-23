@@ -170,6 +170,11 @@ on_install() {
   ui_print "- Extracting module files"
   unzip -o $ZIPFILE system/* -d $MODPATH >&2 || abort "! Can't extract system/: $?"
 
+  if [[ $IS64BIT == false ]]; then
+    ui_print "- Removing 64-bit libraries"
+    rm -rf $MODPATH/system/lib64
+  fi
+
   ui_print "- Extracting riru files"
   [[ -d $RIRU_MODULE_PATH ]] || mkdir -p $RIRU_MODULE_PATH || abort "! Can't create $RIRU_MODULE_PATH: $?"
   cp -f $TMPDIR/module.prop $RIRU_MODULE_PATH/module.prop || abort "! Can't copy module.prop to $RIRU_MODULE_PATH: $?"
