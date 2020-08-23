@@ -110,13 +110,13 @@ public final class Main {
             }*/
 
             sTranslationCode = getAvailableTranslationCode();
-            String realApi = SystemProperties.get( "ro.product.cpu.abi", "");
-            if (TextUtils.isEmpty(realApi)) {
+            String realAbi = SystemProperties.get( "ro.product.cpu.abi", "");
+            if (TextUtils.isEmpty(realAbi)) {
                 Log.e(TAG, "System property 'ro.product.cpu.abi' is missing on the device");
                 mainZygote = false;
             } else {
                 // For 32-bit process running on 64-bit device, Build.CPU_ABI is 32-bit api
-                mainZygote = Build.CPU_ABI.equalsIgnoreCase(realApi);
+                mainZygote = Build.CPU_ABI.equalsIgnoreCase(realAbi);
             }
             return 0;
         } catch (Throwable e) {
