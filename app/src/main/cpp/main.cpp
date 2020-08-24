@@ -42,7 +42,7 @@ EXPORT_C void onModuleLoaded() {
     LOGI("Welcome to Dreamland v%d!", Dreamland::VERSION);
     disabled = Dreamland::ShouldDisable();
     if (UNLIKELY(disabled)) {
-        LOGW("Dreamland framework should disable, do nothing.");
+        LOGW("Dreamland framework should be disabled, do nothing.");
         return;
     }
     Android::Initialize();
@@ -63,6 +63,14 @@ EXPORT_C void onModuleLoaded() {
     } else {
         LOGE("Failed to hook JNI_CreateJavaVM");
     }
+}
+
+EXPORT_C int shouldSkipUid(int uid) {
+    if (uid == 1000/*SYSTEM_UID*/) return 0;
+
+    // Skip non-normal app process (e.g. isolated process, relro updater and webview zygote).
+    int app_id = uid % 100000;
+    return app_id >= 10000 && app_id <= 19999 ? 0 : 1;
 }
 
 EXPORT_C void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint* gid_ptr,
