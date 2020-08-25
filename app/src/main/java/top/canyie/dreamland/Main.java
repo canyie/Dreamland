@@ -88,6 +88,7 @@ public final class Main {
             PineConfig.debuggable = false;
             PineConfig.libLoader = null;
             Pine.ensureInitialized();
+            Pine.setJitCompilationAllowed(false);
 
             /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 try {
@@ -293,6 +294,8 @@ public final class Main {
                 Log.e(TAG, "Failure from remote dreamland service", e);
                 return;
             }
+
+            Pine.setJitCompilationAllowed(true);
 
             Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("handleBindApplication",
                     ActivityThread.AppBindData.REF.unwrap()),
