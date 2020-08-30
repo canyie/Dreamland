@@ -68,19 +68,19 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     public void registerPackageReplacedReceiver() {
         // FIXME Receiver will not triggered
-        try {
-            IntentFilter intentFilter = new IntentFilter();
-            intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
-            intentFilter.addDataScheme("package");
-            mContext.registerReceiver(new BroadcastReceiver() {
-                @Override public void onReceive(Context context, Intent intent) {
-                    String packageName = intent.getData().getSchemeSpecificPart();
-                    Log.i(TAG, "Package " + packageName + " Replaced");
-                }
-            }, intentFilter);
-        } catch (Throwable e) {
-            Log.e(Dreamland.TAG, "Cannot register package replaced receiver", e);
-        }
+//        try {
+//            IntentFilter intentFilter = new IntentFilter();
+//            intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+//            intentFilter.addDataScheme("package");
+//            mContext.registerReceiver(new BroadcastReceiver() {
+//                @Override public void onReceive(Context context, Intent intent) {
+//                    String packageName = intent.getData().getSchemeSpecificPart();
+//                    Log.i(TAG, "Package " + packageName + " Replaced");
+//                }
+//            }, intentFilter);
+//        } catch (Throwable e) {
+//            Log.e(Dreamland.TAG, "Cannot register package replaced receiver", e);
+//        }
     }
 
     @Override public int getVersion() {
@@ -265,6 +265,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     private void enforceManagerOrShell(String op) {
         int callingUid = Binder.getCallingUid();
+        Binder.getCallingUserHandle(
         if (callingUid == ROOT_UID || callingUid == SYSTEM_UID || callingUid == SHELL_UID) return;
         String callingPackage = mContext.getPackageManager().getNameForUid(callingUid);
         if (!Dreamland.MANAGER_PACKAGE_NAME.equals(callingPackage))
