@@ -50,6 +50,7 @@ public final class Main {
     private static final String TARGET_BINDER_SERVICE_NAME = Context.CLIPBOARD_SERVICE;
     private static final String TARGET_BINDER_SERVICE_DESCRIPTOR = "android.content.IClipboard";
     private static boolean classLoaderReady;
+    private static boolean clipboardServiceReplaced, packageManagerReady;
     //private static int sWebViewZygoteUid = -1;
     private static int sTranslationCode = IBinder.LAST_CALL_TRANSACTION;
     private static boolean mainZygote;
@@ -205,9 +206,9 @@ public final class Main {
 
             Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
                 @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
-                    Object activityThread = callFrame.getResult();
+                    /*Object activityThread = callFrame.getResult();
                     Context context = ActivityThread.REF.method("getSystemContext").call(activityThread);
-                    dms.initContext(context);
+                    dms.initContext(context);*/
 
                     String[] modules = dms.getEnabledModulesFor();
                     if (modules != null && modules.length != 0) {
@@ -233,14 +234,24 @@ public final class Main {
             ServiceManager.sServiceManager.setStaticValue(Reflection.on("android.os.IServiceManager")
                     .proxy((proxy, method, args) -> {
                         if ("addService".equals(method.getName())) {
-                            if (TARGET_BINDER_SERVICE_NAME.equals(args[0])) {
+                            Object serviceName = args[0];
+                            if (TARGET_BINDER_SERVICE_NAME.equals(serviceName)) {
                                 Log.i(TAG, "Replacing clipboard service");
                                 args[1] = new BinderServiceProxy((Binder) args[1], translationCode,
                                         TARGET_BINDER_SERVICE_DESCRIPTOR, dms);
                                 //args[2] = true; // Do not supports isolated processes yet
+                                clipboardServiceReplaced = true;
+                            } else if ("package".equals(serviceName)) {
+                                Log.i(TAG, "Package manager is available");
+                                dms.setPackageManager((IBinder) args[1]);
+                                packageManagerReady = true;
+                            }
+
+                            if (clipboardServiceReplaced && packageManagerReady) {
                                 ServiceManager.sServiceManager.setStaticValue(base);
                             }
                         }
+
                         try {
                             return method.invoke(base, args);
                         } catch (InvocationTargetException e) {

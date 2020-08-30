@@ -1,12 +1,11 @@
 package top.canyie.dreamland.ipc;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
+import android.content.pm.IPackageManager;
 import android.os.Binder;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.os.UserHandle;
 import android.util.Log;
 import android.util.LruCache;
 
@@ -35,7 +34,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private boolean mGlobalModeEnabled;
     private boolean mResourcesHookEnabled;
 
-    private Context mContext;
+    private IPackageManager pm;
     private final AppManager mAppManager;
     private final ModuleManager mModuleManager;
 
@@ -62,12 +61,12 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return new DreamlandManagerService();
     }
 
-    public void initContext(Context context) {
-        mContext = context;
+    public void setPackageManager(IBinder service) {
+        pm = IPackageManager.Stub.asInterface(service);
     }
 
-    public void registerPackageReplacedReceiver() {
-        // FIXME Receiver will not triggered
+//    public void registerPackageReplacedReceiver() {
+//        // FIXME Receiver will not triggered
 //        try {
 //            IntentFilter intentFilter = new IntentFilter();
 //            intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
@@ -81,13 +80,12 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 //        } catch (Throwable e) {
 //            Log.e(Dreamland.TAG, "Cannot register package replaced receiver", e);
 //        }
-    }
-
+//    }
     @Override public int getVersion() {
         return Dreamland.VERSION;
     }
 
-    @Override public boolean isEnabledFor() {
+    @Override public boolean isEnabledFor() throws RemoteException {
         String calling = getCallingPackage();
         if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
                 || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)) {
@@ -97,7 +95,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return isAppEnabled(calling);
     }
 
-    @Override public String[] getEnabledApps() {
+    @Override public String[] getEnabledApps() throws RemoteException {
         enforceManagerOrEnabledModule("getEnabledApps");
         String[] enabled = mEnabledAppCache;
         if (enabled == null) {
@@ -113,13 +111,13 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return enabled;
     }
 
-    @Override public void setAppEnabled(String packageName, boolean enabled) {
+    @Override public void setAppEnabled(String packageName, boolean enabled) throws RemoteException {
         enforceManager("setAppEnabled");
         mAppManager.setEnabled(packageName, enabled);
         mEnabledAppCache = null;
     }
 
-    @Override public String[] getEnabledModulesFor() {
+    @Override public String[] getEnabledModulesFor() throws RemoteException {
         if (mSafeModeEnabled) return null;
         String calling = getCallingPackage();
         if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
@@ -128,7 +126,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return mEnabledModuleCache.get(calling);
     }
 
-    @Override public String[] getAllEnabledModules() {
+    @Override public String[] getAllEnabledModules() throws RemoteException {
         enforceManagerOrEnabledModule("getAllEnabledModules");
         String[] modules = mAllEnabledModuleCache;
         if (modules == null) {
@@ -144,25 +142,23 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return modules;
     }
 
-    @Override public void setModuleEnabled(String packageName, boolean enabled) {
+    @Override public void setModuleEnabled(String packageName, boolean enabled) throws RemoteException {
         enforceManager("setModuleEnabled");
         if (enabled) {
-            try {
-                PackageManager pm = mContext.getPackageManager();
-                ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
-                String apkPath = appInfo.publicSourceDir;
-                if (apkPath == null) {
-                    apkPath = appInfo.sourceDir;
-                    if (apkPath == null) {
-                        DLog.e(TAG, "No valid apk found for module " + packageName);
-                        return;
-                    }
-                }
-                mModuleManager.enable(packageName, apkPath);
-            } catch (PackageManager.NameNotFoundException e) {
-                DLog.e(TAG, "Attempting to enable a non-existing module " + packageName, e);
+            ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0, UserHandle.getCallingUserId());
+            if (appInfo == null) {
+                DLog.e(TAG, "Attempting to enable a non-existing module " + packageName);
                 return;
             }
+            String apkPath = appInfo.publicSourceDir;
+            if (apkPath == null) {
+                apkPath = appInfo.sourceDir;
+                if (apkPath == null) {
+                    DLog.e(TAG, "No valid apk found for module " + packageName);
+                    return;
+                }
+            }
+            mModuleManager.enable(packageName, apkPath);
         } else {
             mModuleManager.disable(packageName);
         }
@@ -173,18 +169,18 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     }
 
-    @Override public boolean isSafeModeEnabled() {
+    @Override public boolean isSafeModeEnabled() throws RemoteException {
         enforceManagerOrEnabledModule("isSafeModeEnabled");
         return mSafeModeEnabled;
     }
 
-    @Override public void setSafeModeEnabled(boolean enabled) {
+    @Override public void setSafeModeEnabled(boolean enabled) throws RemoteException {
         enforceManager("setSafeModeEnabled");
         mSafeModeEnabled = enabled;
         touch(SAFE_MODE_FILENAME, enabled);
     }
 
-    @Override public void reload() {
+    @Override public void reload() throws RemoteException {
         enforceManagerOrShell("reload");
         mModuleManager.startLoad();
         mAppManager.startLoad();
@@ -197,7 +193,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return mResourcesHookEnabled;
     }
 
-    @Override public void setResourcesHookEnabled(boolean enabled) {
+    @Override public void setResourcesHookEnabled(boolean enabled) throws RemoteException {
         enforceManager("setResourcesHookEnabled");
         mResourcesHookEnabled = enabled;
         touch(ENABLE_RESOURCES_FILENAME, enabled);
@@ -207,20 +203,20 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return mGlobalModeEnabled;
     }
 
-    @Override public void setGlobalModeEnabled(boolean enabled) {
+    @Override public void setGlobalModeEnabled(boolean enabled) throws RemoteException {
         enforceManager("setGlobalModeEnabled");
         mGlobalModeEnabled = enabled;
         touch(GLOBAL_MODE_FILENAME, enabled);
     }
 
-    @Override public String[] getEnabledAppsFor(String module) {
+    @Override public String[] getEnabledAppsFor(String module) throws RemoteException {
         enforceManager("getEnabledAppsFor");
         synchronized (mModuleManager) {
             return mModuleManager.getEnabledAppsFor(module);
         }
     }
 
-    @Override public void setEnabledAppsFor(String module, String[] apps) {
+    @Override public void setEnabledAppsFor(String module, String[] apps) throws RemoteException {
         enforceManager("setEnabledAppsFor");
         synchronized (mModuleManager) {
             mModuleManager.setEnabledFor(module, apps);
@@ -228,10 +224,9 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     }
 
-    private String getCallingPackage() {
+    private String getCallingPackage() throws RemoteException {
         int callingUid = Binder.getCallingUid();
-        return callingUid == SYSTEM_UID
-                ? "android" : mContext.getPackageManager().getNameForUid(callingUid);
+        return callingUid == SYSTEM_UID ? "android" : pm.getNameForUid(callingUid);
     }
 
     private boolean isAppEnabled(String packageName) {
@@ -250,24 +245,23 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     }
 
-    private void enforceManager(String op) {
-        String callingPackage = mContext.getPackageManager().getNameForUid(Binder.getCallingUid());
+    private void enforceManager(String op) throws RemoteException {
+        String callingPackage = pm.getNameForUid(Binder.getCallingUid());
         if (!Dreamland.MANAGER_PACKAGE_NAME.equals(callingPackage)) {
             DLog.i(TAG, "Rejecting package " + callingPackage + " to do " + op);
             throw new SecurityException("Only dreamland manager can do: " + op);
         }
     }
 
-    private void enforceManagerOrEnabledModule(String op) {
+    private void enforceManagerOrEnabledModule(String op) throws RemoteException {
         enforceManager(op);
         // FIXME Implement for enabled module
     }
 
-    private void enforceManagerOrShell(String op) {
+    private void enforceManagerOrShell(String op) throws RemoteException {
         int callingUid = Binder.getCallingUid();
-        Binder.getCallingUserHandle(
         if (callingUid == ROOT_UID || callingUid == SYSTEM_UID || callingUid == SHELL_UID) return;
-        String callingPackage = mContext.getPackageManager().getNameForUid(callingUid);
+        String callingPackage = pm.getNameForUid(callingUid);
         if (!Dreamland.MANAGER_PACKAGE_NAME.equals(callingPackage))
             throw new SecurityException("Only root/system/shell/manager process can " + op);
     }
