@@ -1,5 +1,6 @@
 package top.canyie.dreamland.utils;
 
+import android.system.ErrnoException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -69,5 +70,14 @@ public final class IOUtils {
             throw new IllegalStateException("Can't create directory: " + directory.getAbsolutePath());
         }
         return directory;
+    }
+
+    public static int getErrno(IOException e) {
+        for (Throwable cause = e;cause != null;cause = cause.getCause()) {
+            if (cause instanceof ErrnoException) {
+                return ((ErrnoException) cause).errno;
+            }
+        }
+        return 0;
     }
 }
