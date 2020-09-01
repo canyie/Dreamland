@@ -7,15 +7,11 @@ import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.IXposedHookZygoteInit.StartupParam;
 import de.robv.android.xposed.callbacks.XC_InitPackageResources.InitPackageResourcesParam;
-import top.canyie.dreamland.utils.reflect.Reflection;
 
 /**
  * Provides access to resources from a certain path (usually the module's own path).
  */
 public class XModuleResources extends Resources {
-	private static final Reflection.MethodWrapper addAssetPath = Reflection.method(AssetManager.class,
-			"addAssetPath", String.class);
-
 	private XModuleResources(AssetManager assets, DisplayMetrics metrics, Configuration config) {
 		super(assets, metrics, config);
 	}
@@ -38,7 +34,6 @@ public class XModuleResources extends Resources {
 
 		AssetManager assets = new AssetManager();
 		assets.addAssetPath(path);
-		addAssetPath.call(assets, path);
 
 		XModuleResources res;
 		if (origRes != null)
