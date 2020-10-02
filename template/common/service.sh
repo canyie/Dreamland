@@ -3,6 +3,8 @@ MODDIR=${0%/*}
 
 [[ -f /data/misc/dreamland/disable ]] && exit 0
 
+[[ -f /data/misc/dreamland/bootloop_protection ]] || exit 0
+
 MAIN_ZYGOTE_NICENAME=zygote
 CPU_ABI=$(getprop ro.product.cpu.api)
 [[ $CPU_ABI == "arm64-v8a" ]] && MAIN_ZYGOTE_NICENAME=zygote64
