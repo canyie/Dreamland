@@ -20,3 +20,15 @@ steps:
       publishJUnitResults: false
       tasks: 'assembleMagiskRelease'
 
+  - task: CopyFiles@2
+    inputs: 
+      contents: '**/build/outputs/magisk/magisk-dreamland-**.zip'
+      targetFolder: '$(build.artifactStagingDirectory)'
+      cleanTargetFolder: true
+  
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: '$(build.artifactStagingDirectory)'
+      artifactName: 'magisk-dreamland-ci.zip'
+
+pr: none
