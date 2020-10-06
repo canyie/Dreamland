@@ -25,10 +25,12 @@ steps:
       contents: '**/build/outputs/magisk/magisk-dreamland-**.zip'
       targetFolder: '$(build.artifactStagingDirectory)'
       cleanTargetFolder: true
+      flattenFolders: true
   
   - task: PublishBuildArtifacts@1
     inputs:
       pathToPublish: '$(build.artifactStagingDirectory)'
       artifactName: 'magisk-dreamland-ci.zip'
+      artifactType: 'container'
 
 pr: none
