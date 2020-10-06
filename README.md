@@ -1,4 +1,5 @@
-# Dreamland
+# Dreamland [![Build Status](https://dev.azure.com/ssz33334930121/ssz3333493/_apis/build/status/canyie.Dreamland?branchName=master)](https://dev.azure.com/ssz33334930121/ssz3333493/_build/latest?definitionId=1&branchName=master)
+
 [Developing] A third-party Xposed framework.
 
 [中文版本](README_CN.md)

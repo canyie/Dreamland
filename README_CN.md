@@ -1,4 +1,5 @@
-# 梦境框架
+# 梦境框架 [![Build Status](https://dev.azure.com/ssz33334930121/ssz3333493/_apis/build/status/canyie.Dreamland?branchName=master)](https://dev.azure.com/ssz33334930121/ssz3333493/_build/latest?definitionId=1&branchName=master)
+
 梦境是一个类Xposed框架，正在开发。
 
 [English](README.md)
