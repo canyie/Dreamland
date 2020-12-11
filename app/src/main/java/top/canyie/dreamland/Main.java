@@ -223,6 +223,7 @@ public final class Main {
                                 new MethodHook() {
                                     @Override public void beforeCall(Pine.CallFrame callFrame) {
                                         Dreamland.loadXposedModules(modules, true);
+																																								Dreamland.callLoadPackage();
                                     }
                                 });
                     }

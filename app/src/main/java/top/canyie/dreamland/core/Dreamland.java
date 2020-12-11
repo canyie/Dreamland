@@ -89,10 +89,14 @@ public final class Dreamland {
                 }
                 return;
             }
-            Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
-            PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
+            callLoadPackage();
         }
     }
+				
+				public static void callLoadPackage() {
+								Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
+								PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
+				}
 
     private static boolean canLoadXposedModules() {
         return classLoader != null && !hooked;
