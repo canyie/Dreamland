@@ -8,6 +8,7 @@
 
 ## 交流
 - [QQ群: 949888394](https://shang.qq.com/wpa/qunwpa?idkey=25549719b948d2aaeb9e579955e39d71768111844b370fcb824d43b9b20e1c04)
+- [Telegarm群](https://t.me/DreamlandFramework)
 
 ## 鸣谢
 - [Xposed](https://github.com/rovo89/Xposed): 原版Xposed框架
