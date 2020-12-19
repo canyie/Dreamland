@@ -25,6 +25,7 @@ import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.ipc.BinderServiceProxy;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 import top.canyie.dreamland.ipc.DreamlandManagerService;
+import top.canyie.dreamland.utils.AppConstants;
 import top.canyie.dreamland.utils.RuntimeUtils;
 import top.canyie.dreamland.utils.reflect.Reflection;
 
@@ -210,11 +211,11 @@ public final class Main {
                     Context context = ActivityThread.REF.method("getSystemContext").call(activityThread);
                     dms.initContext(context);*/
 
-                    String[] modules = dms.getEnabledModulesFor();
+                    String[] modules = dms.getEnabledModulesForSystemServer();
                     if (modules != null && modules.length != 0) {
                         ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                        Dreamland.packageName = "android";
-                        Dreamland.processName = "android"; // it's actually system_server, but other functions return this as well
+                        Dreamland.packageName = AppConstants.ANDROID;
+                        Dreamland.processName = AppConstants.ANDROID; // it's actually system_server, but other functions return this as well
                         Dreamland.appInfo = null;
                         Dreamland.classLoader = cl;
                         assert cl != null;
@@ -223,7 +224,7 @@ public final class Main {
                                 new MethodHook() {
                                     @Override public void beforeCall(Pine.CallFrame callFrame) {
                                         Dreamland.loadXposedModules(modules, true);
-																																								Dreamland.callLoadPackage();
+                                        Dreamland.callLoadPackage();
                                     }
                                 });
                     }

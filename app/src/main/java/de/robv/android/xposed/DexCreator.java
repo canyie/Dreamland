@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.DigestException;
 import java.security.MessageDigest;
@@ -102,6 +103,11 @@ public class DexCreator {
         }
 
         return true;
+    }
+
+    // Dreamland added
+    public static ByteBuffer create(String superOf, Class<?> superclass) throws IOException {
+        return ByteBuffer.wrap(create("xposed.dummy." + superOf + "SuperClass", superclass.getName()));
     }
 
     /** Creates the byte array for the dex file. */

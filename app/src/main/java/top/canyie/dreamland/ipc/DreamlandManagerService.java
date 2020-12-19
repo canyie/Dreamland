@@ -127,6 +127,12 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return false;
     }
 
+    public boolean isEnabledForSystemServer() {
+        if (mSafeModeEnabled) return false;
+        if (mGlobalModeEnabled) return true;
+        return mAppManager.isEnabled(AppConstants.ANDROID);
+    }
+
     @Override public String[] getEnabledApps() throws RemoteException {
         enforceManagerOrEnabledModule("getEnabledApps");
         String[] enabled = mEnabledAppCache;
@@ -173,6 +179,12 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         if (!enabled) return null;
 
         return mEnabledModuleCache.get(packages);
+    }
+
+    public String[] getEnabledModulesForSystemServer() {
+        if (mSafeModeEnabled) return null;
+        if (!(mGlobalModeEnabled || mAppManager.isEnabled(AppConstants.ANDROID))) return null;
+        return mEnabledModuleCache.get(AppConstants.ARRAY_ANDROID);
     }
 
     @Override public String[] getAllEnabledModules() throws RemoteException {
