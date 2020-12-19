@@ -75,7 +75,7 @@ public final class Dreamland {
                 try {
                     Class<?> mainActivityClass = classLoader.loadClass("com.canyie.dreamland.manager.ui.activities.MainActivity");
                     XposedHelpers.findAndHookMethod(
-                            Activity.class,"onCreate", Bundle.class, new XC_MethodHook() {
+                            Activity.class, "onCreate", Bundle.class, new XC_MethodHook() {
                                 @Override protected void afterHookedMethod(MethodHookParam param) {
                                     if (param.thisObject.getClass() != mainActivityClass) return;
                                     String msg = "The Dreamland manager is obsolete " +
@@ -92,11 +92,11 @@ public final class Dreamland {
             callLoadPackage();
         }
     }
-				
-				public static void callLoadPackage() {
-								Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
-								PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
-				}
+
+    public static void callLoadPackage() {
+        Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
+        PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
+    }
 
     private static boolean canLoadXposedModules() {
         return classLoader != null && !hooked;
@@ -138,7 +138,8 @@ public final class Dreamland {
 
         findAndHookMethod("android.app.ApplicationPackageManager", null,
                 "getResourcesForApplication", ApplicationInfo.class, new XC_MethodHook() {
-                    @Override protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) {
+                    @Override
+                    protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) {
                         ApplicationInfo app = (ApplicationInfo) param.args[0];
                         XResources.setPackageNameForResDir(app.packageName,
                                 app.uid == android.os.Process.myUid() ? app.sourceDir : app.publicSourceDir);

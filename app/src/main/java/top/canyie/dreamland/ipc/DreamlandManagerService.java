@@ -4,6 +4,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.util.Log;
@@ -12,10 +13,12 @@ import android.util.LruCache;
 import top.canyie.dreamland.core.AppManager;
 import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.core.ModuleManager;
+import top.canyie.dreamland.utils.AppConstants;
 import top.canyie.dreamland.utils.DLog;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -27,7 +30,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private static final String GLOBAL_MODE_FILENAME = "global_mode";
     private static final String ENABLE_RESOURCES_FILENAME = "enable_resources";
     private static final int ROOT_UID = 0;
-    private static final int SYSTEM_UID = 1000;
+    private static final int SYSTEM_UID = Process.SYSTEM_UID;
     private static final int SHELL_UID = 2000;
 
     private boolean mSafeModeEnabled;
@@ -39,13 +42,29 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private final ModuleManager mModuleManager;
 
     private volatile String[] mEnabledAppCache;
-    private final LruCache<String, String[]> mEnabledModuleCache = new LruCache<String, String[]>(128) {
-        @Override protected String[] create(String key) {
-            Set<String> set = mModuleManager.getEnabledFor(key);
+    private final LruCache<String[], String[]> mEnabledModuleCache = new LruCache<String[], String[]>(128) {
+        @Override protected String[] create(String[] key) {
+            if (key.length == 0) return AppConstants.EMPTY_STRING_ARRAY;
+            HashSet<String> set = new HashSet<>();
+            for (String p : key) {
+                mModuleManager.getEnabledFor(p, set);;
+            }
             return set.toArray(new String[set.size()]);
         }
     };
     private volatile String[] mAllEnabledModuleCache;
+
+    private final LruCache<Integer, String[]> mAppUidMap = new LruCache<Integer, String[]>(128) {
+        @Override protected String[] create(Integer key) {
+            try {
+                return pm.getPackagesForUid(key);
+            } catch (RemoteException e) {
+                // should never happen, we run in the same process as PMS
+                Log.e(TAG, "getPackagesForUid failed", e);
+                return null;
+            }
+        }
+    };
 
     private DreamlandManagerService() {
         mModuleManager = new ModuleManager();
@@ -55,6 +74,8 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mSafeModeEnabled = new File(Dreamland.BASE_DIR, SAFE_MODE_FILENAME).exists();
         mGlobalModeEnabled = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME).exists();
         mResourcesHookEnabled = new File(Dreamland.BASE_DIR, ENABLE_RESOURCES_FILENAME).exists();
+
+        mAppUidMap.put(SYSTEM_UID, AppConstants.ARRAY_ANDROID);
     }
 
     public static DreamlandManagerService start() {
@@ -86,13 +107,24 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     }
 
     @Override public boolean isEnabledFor() throws RemoteException {
-        String calling = getCallingPackage();
-        if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
-                || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)) {
-            return true;
+        String[] packages = getPackagesForCallingUid();
+        if (packages != null && packages.length == 1) {
+            // Dreamland manager should never use sharedUserId.
+            String calling = packages[0];
+            if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
+                    || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)) {
+                return true;
+            }
         }
+
         if (mSafeModeEnabled) return false;
-        return isAppEnabled(calling);
+        if (mGlobalModeEnabled) return true;
+        if (packages == null) return false;
+        for (String app : packages) {
+            if (mAppManager.isEnabled(app))
+                return true;
+        }
+        return false;
     }
 
     @Override public String[] getEnabledApps() throws RemoteException {
@@ -119,11 +151,28 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     @Override public String[] getEnabledModulesFor() throws RemoteException {
         if (mSafeModeEnabled) return null;
-        String calling = getCallingPackage();
-        if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
-                || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)
-                || !isAppEnabled(calling)) return null;
-        return mEnabledModuleCache.get(calling);
+        String[] packages = getPackagesForCallingUid();
+        if (packages == null || packages.length == 0) return null;
+        if (packages.length == 1) {
+            // Dreamland manager should never use sharedUserId.
+            String calling = packages[0];
+            if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
+                    || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)) return null;
+        }
+
+        boolean enabled = false;
+        if (!mGlobalModeEnabled) {
+            for (String packageName : packages) {
+                if (mAppManager.isEnabled(packageName)) {
+                    enabled = true;
+                    break;
+                }
+            }
+        }
+
+        if (!enabled) return null;
+
+        return mEnabledModuleCache.get(packages);
     }
 
     @Override public String[] getAllEnabledModules() throws RemoteException {
@@ -224,13 +273,8 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     }
 
-    private String getCallingPackage() throws RemoteException {
-        int callingUid = Binder.getCallingUid();
-        return callingUid == SYSTEM_UID ? "android" : pm.getNameForUid(callingUid);
-    }
-
-    private boolean isAppEnabled(String packageName) {
-        return mGlobalModeEnabled || mAppManager.isEnabled(packageName);
+    private String[] getPackagesForCallingUid() {
+        return mAppUidMap.get(Binder.getCallingUid());
     }
 
     private void touch(String filename, boolean enabled) {

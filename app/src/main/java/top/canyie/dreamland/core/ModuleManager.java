@@ -59,19 +59,14 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
         return result;
     }
 
-    public Set<String> getEnabledFor(String packageName) {
-        // Note: From the principle of encapsulation, the real object should not be returned directly,
-        // we should return a unmodifiable object, but this is not a public API
-        // and we know that no write operation will be performed on the return value.
+    public void getEnabledFor(String packageName, Set<String> out) {
         Map<String, ModuleInfo> map = getRealObject();
-        if (map.isEmpty()) return Collections.emptySet();
+        if (map.isEmpty()) return;
         Collection<ModuleInfo> modules = map.values();
-        Set<String> result = new HashSet<>(Math.min(4, modules.size() / 3));
         for (ModuleInfo module : modules) {
             if (module.enabled && module.isEnabledFor(packageName))
-                result.add(module.path);
+                out.add(module.path);
         }
-        return result;
     }
 
     public boolean isModuleEnabled(String packageName) {
