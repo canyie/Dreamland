@@ -32,9 +32,7 @@ void Android::DisableOnlyUseSystemOatFiles() {
                 ? "_ZN3art14OatFileManager24SetOnlyUseSystemOatFilesEbb" // Q: (OatFileManager*, bool, bool)
                 : "_ZN3art14OatFileManager24SetOnlyUseSystemOatFilesEv"; // P & R: (OatFileManager*)
 
-        bool disabled = PineNativeInlineHookSymbolNoBackup("libart.so",
-                                                           "_ZN3art14OatFileManager24SetOnlyUseSystemOatFilesEbb",
-                                                           (void*) DoNothing);
+        bool disabled = PineNativeInlineHookSymbolNoBackup("libart.so", symbol, (void*) DoNothing);
         if (UNLIKELY(!disabled)) LOGE("Failed to disable only use system oat files by hook %s", symbol);
     }
 }
