@@ -25,6 +25,7 @@ RiruApiV9* riru_api_v9;
 }
 
 bool disabled = false;
+bool starting_child_zygote = false;
 jint (*orig_JNI_CreateJavaVM)(JavaVM**, JNIEnv**, void*) = nullptr;
 
 jint hook_JNI_CreateJavaVM(JavaVM** p_vm, JNIEnv** p_env, void* vm_args) {
@@ -91,7 +92,10 @@ static inline void Prepare(JNIEnv* env) {
 
 static inline void PostForkApp(JNIEnv* env, jint result) {
     if (result == 0 && !disabled) {
-        Dreamland::OnAppProcessStart(env);
+        if (UNLIKELY(starting_child_zygote))
+            LOGW("Skipping inject this process because it is child zygote");
+        else
+            Dreamland::OnAppProcessStart(env);
     }
 }
 
@@ -104,8 +108,10 @@ static inline void PostForkSystemServer(JNIEnv* env, jint result) {
 EXPORT_C void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint* gid_ptr,
                                          jintArray*, jint*, jobjectArray*, jint*, jstring*,
                                          jstring*, jintArray*, jintArray*,
-                                         jboolean*, jstring*, jstring*, jboolean*, jobjectArray*) {
+                                         jboolean* is_child_zygote, jstring*, jstring*, jboolean*,
+                                         jobjectArray*) {
     Prepare(env);
+    starting_child_zygote = *is_child_zygote;
 }
 
 EXPORT_C int nativeForkAndSpecializePost(JNIEnv* env, jclass, jint result) {
@@ -132,6 +138,7 @@ static void forkAndSpecializePre(
         jstring *instructionSet, jstring *appDataDir, jboolean *isTopApp, jobjectArray *pkgDataInfoList,
         jobjectArray *whitelistedDataInfoList, jboolean *bindMountAppDataDirs, jboolean *bindMountAppStorageDirs) {
     Prepare(env);
+    starting_child_zygote = *is_child_zygote;
 }
 
 static void forkAndSpecializePost(JNIEnv *env, jclass, jint res) {
@@ -146,6 +153,7 @@ static void specializeAppProcessPre(
         jboolean *bindMountAppDataDirs, jboolean *bindMountAppStorageDirs) {
     // added from Android 10, but disabled at least in Google Pixel devices
     Prepare(env);
+    starting_child_zygote = *startChildZygote;
 }
 
 static void specializeAppProcessPost(JNIEnv *env, jclass) {
