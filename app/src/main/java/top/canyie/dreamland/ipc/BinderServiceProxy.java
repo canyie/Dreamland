@@ -21,6 +21,7 @@ public class BinderServiceProxy extends Binder {
     private int translation;
     private String descriptor;
     private IBinder service;
+    private CallerVerifier verifier;
 
     public static IBinder transactRemote(IBinder service, String descriptor, int code) throws RemoteException {
         Parcel data = Parcel.obtain();
@@ -36,11 +37,12 @@ public class BinderServiceProxy extends Binder {
         }
     }
 
-    public BinderServiceProxy(Binder base, int code, String descriptor, IBinder service) {
+    public BinderServiceProxy(Binder base, int code, String descriptor, IBinder service, CallerVerifier verifier) {
         this.base = base;
         this.translation = code;
         this.descriptor = descriptor;
         this.service = service;
+        this.verifier = verifier;
     }
 
     @Nullable @Override public String getInterfaceDescriptor() {
@@ -69,7 +71,7 @@ public class BinderServiceProxy extends Binder {
 
     @Override protected boolean onTransact(int code, @NonNull Parcel data,
                                            @Nullable Parcel reply, int flags) throws RemoteException {
-        if (code == translation) {
+        if (code == translation && verifier.canAccessService()) {
             assert reply != null;
             data.enforceInterface(descriptor);
             reply.writeNoException();
@@ -85,5 +87,9 @@ public class BinderServiceProxy extends Binder {
 
     @Override public boolean unlinkToDeath(@NonNull DeathRecipient recipient, int flags) {
         return base.unlinkToDeath(recipient, flags);
+    }
+
+    @FunctionalInterface public interface CallerVerifier {
+        boolean canAccessService();
     }
 }

@@ -240,7 +240,7 @@ public final class Main {
                             if (TARGET_BINDER_SERVICE_NAME.equals(serviceName)) {
                                 Log.i(TAG, "Replacing clipboard service");
                                 args[1] = new BinderServiceProxy((Binder) args[1], translationCode,
-                                        TARGET_BINDER_SERVICE_DESCRIPTOR, dms);
+                                        TARGET_BINDER_SERVICE_DESCRIPTOR, dms, dms::isEnabledFor);
                                 //args[2] = true; // Do not supports isolated processes yet
                                 clipboardServiceReplaced = true;
                             } else if ("package".equals(serviceName)) {
@@ -293,8 +293,12 @@ public final class Main {
             try {
                 IBinder dmsBinder = BinderServiceProxy.transactRemote(clipboard,
                         TARGET_BINDER_SERVICE_DESCRIPTOR, sTranslationCode);
+                if (dmsBinder == null) {
+                    // dmsBinder is null => should not hook into this process.
+                    // DreamlandManager is not exposed to disabled app now.
+                    return;
+                }
                 dm = IDreamlandManager.Stub.asInterface(dmsBinder);
-                if (!dm.isEnabledFor()) return;
             } catch (Exception e) {
                 Log.e(TAG, "Couldn't check whether the current process is needs to hook", e);
                 return;

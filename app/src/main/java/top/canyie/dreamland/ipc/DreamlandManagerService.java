@@ -106,7 +106,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return Dreamland.VERSION;
     }
 
-    @Override public boolean isEnabledFor() throws RemoteException {
+    @Override public boolean isEnabledFor() {
         String[] packages = getPackagesForCallingUid();
         if (packages != null && packages.length == 1) {
             // Dreamland manager should never use sharedUserId.
