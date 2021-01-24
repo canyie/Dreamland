@@ -89,7 +89,15 @@ public final class Main {
 
             PineConfig.debug = true;
             PineConfig.debuggable = false;
+
+            // Don't load another .so file, all codes are included in libriru_dreamland.so
             PineConfig.libLoader = null;
+
+            // Don't disable hidden api policy by default, only do it in enabled apps.
+            // Module needs it, but framework itself don't.
+            // Framework's dex on /system/framework, is a platform dex file,
+            // and we will disable any restriction for platform domain.
+            PineConfig.disableHiddenApiPolicy = false;
             Pine.ensureInitialized();
             Pine.setJitCompilationAllowed(false);
 
@@ -312,6 +320,10 @@ public final class Main {
                 Log.e(TAG, "Failure from remote dreamland service", e);
                 return;
             }
+
+            // Disable hidden api policy for application domain because modules may need it.
+            // Restrictions for platform domain was disabled in init()
+            Pine.disableHiddenApiPolicy(true, false);
 
             Pine.setJitCompilationAllowed(true);
 
