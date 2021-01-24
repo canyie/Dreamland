@@ -79,6 +79,7 @@ EXPORT_C void onModuleLoaded() {
 
 EXPORT_C int shouldSkipUid(int uid) {
     if (uid == 1000/*SYSTEM_UID*/) return 0;
+    if (uid == 1001/*RADIO_UID*/) return 0;
 
     // Skip non-normal app process (e.g. isolated process, relro updater and webview zygote).
     int app_id = uid % 100000;
