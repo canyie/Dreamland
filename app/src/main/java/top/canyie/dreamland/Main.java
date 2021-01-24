@@ -22,6 +22,7 @@ import androidx.annotation.Keep;
 import de.robv.android.xposed.DexCreator;
 import de.robv.android.xposed.XposedBridge;
 import top.canyie.dreamland.core.Dreamland;
+import top.canyie.dreamland.core.PackageMonitor;
 import top.canyie.dreamland.ipc.BinderServiceProxy;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 import top.canyie.dreamland.ipc.DreamlandManagerService;
@@ -51,7 +52,7 @@ public final class Main {
     private static final String TARGET_BINDER_SERVICE_NAME = Context.CLIPBOARD_SERVICE;
     private static final String TARGET_BINDER_SERVICE_DESCRIPTOR = "android.content.IClipboard";
     private static boolean classLoaderReady;
-    private static boolean clipboardServiceReplaced, packageManagerReady;
+    private static boolean clipboardServiceReplaced, packageManagerReady, activityManagerReady;
     //private static int sWebViewZygoteUid = -1;
     private static int sTranslationCode = IBinder.LAST_CALL_TRANSACTION;
     private static boolean mainZygote;
@@ -207,10 +208,6 @@ public final class Main {
 
             Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
                 @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
-                    /*Object activityThread = callFrame.getResult();
-                    Context context = ActivityThread.REF.method("getSystemContext").call(activityThread);
-                    dms.initContext(context);*/
-
                     String[] modules = dms.getEnabledModulesForSystemServer();
                     if (modules != null && modules.length != 0) {
                         ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -243,13 +240,17 @@ public final class Main {
                                         TARGET_BINDER_SERVICE_DESCRIPTOR, dms, dms::isEnabledFor);
                                 //args[2] = true; // Do not supports isolated processes yet
                                 clipboardServiceReplaced = true;
+                            } else if(Context.ACTIVITY_SERVICE.equals(serviceName)) {
+                                Log.i(TAG, "Activity manager is available");
+                                activityManagerReady = true;
+                                PackageMonitor.startRegister();
                             } else if ("package".equals(serviceName)) {
                                 Log.i(TAG, "Package manager is available");
                                 dms.setPackageManager((IBinder) args[1]);
                                 packageManagerReady = true;
                             }
 
-                            if (clipboardServiceReplaced && packageManagerReady) {
+                            if (clipboardServiceReplaced && activityManagerReady && packageManagerReady) {
                                 ServiceManager.sServiceManager.setStaticValue(base);
                             }
                         }

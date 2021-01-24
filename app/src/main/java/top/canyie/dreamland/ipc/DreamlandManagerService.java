@@ -1,14 +1,20 @@
 package top.canyie.dreamland.ipc;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.os.Binder;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.util.Log;
 import android.util.LruCache;
+import android.widget.Toast;
 
 import top.canyie.dreamland.core.AppManager;
 import top.canyie.dreamland.core.Dreamland;
@@ -33,6 +39,8 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private static final int SYSTEM_UID = Process.SYSTEM_UID;
     private static final int SHELL_UID = 2000;
 
+    private static DreamlandManagerService instance;
+
     private boolean mSafeModeEnabled;
     private boolean mGlobalModeEnabled;
     private boolean mResourcesHookEnabled;
@@ -47,7 +55,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
             if (key.length == 0) return AppConstants.EMPTY_STRING_ARRAY;
             HashSet<String> set = new HashSet<>();
             for (String p : key) {
-                mModuleManager.getEnabledFor(p, set);;
+                mModuleManager.getEnabledFor(p, set);
             }
             return set.toArray(new String[set.size()]);
         }
@@ -67,6 +75,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     };
 
     private DreamlandManagerService() {
+        instance = this;
         mModuleManager = new ModuleManager();
         mModuleManager.startLoad();
         mAppManager = new AppManager();
@@ -82,26 +91,30 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return new DreamlandManagerService();
     }
 
+    public static DreamlandManagerService getInstance() {
+        return instance;
+    }
+
+    public ModuleManager getModuleManager() {
+        return mModuleManager;
+    }
+
     public void setPackageManager(IBinder service) {
         pm = IPackageManager.Stub.asInterface(service);
     }
 
-//    public void registerPackageReplacedReceiver() {
-//        // FIXME Receiver will not triggered
-//        try {
-//            IntentFilter intentFilter = new IntentFilter();
-//            intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
-//            intentFilter.addDataScheme("package");
-//            mContext.registerReceiver(new BroadcastReceiver() {
-//                @Override public void onReceive(Context context, Intent intent) {
-//                    String packageName = intent.getData().getSchemeSpecificPart();
-//                    Log.i(TAG, "Package " + packageName + " Replaced");
-//                }
-//            }, intentFilter);
-//        } catch (Throwable e) {
-//            Log.e(Dreamland.TAG, "Cannot register package replaced receiver", e);
-//        }
-//    }
+    public String getModulePath(String packageName) throws RemoteException {
+        ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0, UserHandle.getCallingUserId());
+        if (appInfo == null) {
+            return null;
+        }
+        String apkPath = appInfo.publicSourceDir;
+        if (apkPath == null) {
+            apkPath = appInfo.sourceDir;
+        }
+        return apkPath;
+    }
+
     @Override public int getVersion() {
         return Dreamland.VERSION;
     }
@@ -149,7 +162,8 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return enabled;
     }
 
-    @Override public void setAppEnabled(String packageName, boolean enabled) throws RemoteException {
+    @Override
+    public void setAppEnabled(String packageName, boolean enabled) throws RemoteException {
         enforceManager("setAppEnabled");
         mAppManager.setEnabled(packageName, enabled);
         mEnabledAppCache = null;
@@ -202,26 +216,23 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return modules;
     }
 
-    @Override public void setModuleEnabled(String packageName, boolean enabled) throws RemoteException {
+    @Override
+    public void setModuleEnabled(String packageName, boolean enabled) throws RemoteException {
         enforceManager("setModuleEnabled");
         if (enabled) {
-            ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0, UserHandle.getCallingUserId());
-            if (appInfo == null) {
-                DLog.e(TAG, "Attempting to enable a non-existing module " + packageName);
-                return;
-            }
-            String apkPath = appInfo.publicSourceDir;
+            String apkPath = getModulePath(packageName);
             if (apkPath == null) {
-                apkPath = appInfo.sourceDir;
-                if (apkPath == null) {
-                    DLog.e(TAG, "No valid apk found for module " + packageName);
-                    return;
-                }
+                DLog.e(TAG, "No valid apk found for module " + packageName);
+                return;
             }
             mModuleManager.enable(packageName, apkPath);
         } else {
             mModuleManager.disable(packageName);
         }
+        clearModuleCache();
+    }
+
+    public void clearModuleCache() {
         synchronized (mModuleManager) {
             // Invalidate caches.
             mAllEnabledModuleCache = null;

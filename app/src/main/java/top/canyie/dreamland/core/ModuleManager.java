@@ -94,6 +94,23 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
         }
     }
 
+    public void updateModulePath(String packageName, String path) {
+        ModuleInfo moduleInfo = getRealObject().get(packageName);
+        if (moduleInfo != null) {
+            moduleInfo.path = path;
+            notifyDataChanged();
+        }
+    }
+
+    public boolean remove(String packageName) {
+        ModuleInfo moduleInfo = getRealObject().remove(packageName);
+        if (moduleInfo != null) {
+            notifyDataChanged();
+            return true;
+        }
+        return false;
+    }
+
     @NonNull @Override protected ConcurrentHashMap<String, ModuleInfo> createEmpty() {
         return new ConcurrentHashMap<>();
     }
