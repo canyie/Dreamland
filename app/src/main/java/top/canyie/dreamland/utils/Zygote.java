@@ -24,7 +24,7 @@ public final class Zygote {
             }
             allowFileAcrossFork.invoke(null, path);
         } catch (Throwable e) {
-            Log.e(Dreamland.TAG, "Error when ", e);
+            Log.e(Dreamland.TAG, "Error in nativeAllowFileAcrossFork", e);
         }
     }
 }

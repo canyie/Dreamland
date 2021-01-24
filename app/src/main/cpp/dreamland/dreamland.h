@@ -8,6 +8,7 @@
 #include <jni.h>
 #include "../utils/log.h"
 #include "../utils/macros.h"
+#include "android.h"
 
 namespace dreamland {
     class Dreamland {
@@ -27,6 +28,27 @@ namespace dreamland {
                 Prepare(env);
             }
             return instance;
+        }
+
+        static bool ShouldSkipUid(int uid) {
+            // TODO: Get these uids through java world
+            int app_id = uid % 100000;
+            if (UNLIKELY(app_id >= 90000)) {
+                // Isolated process
+                return true;
+            }
+            if (UNLIKELY(app_id == 1037)) {
+                // RELRO updater
+                return true;
+            }
+            if (Android::version >= Android::kO) {
+                uid_t kWebViewZygoteUid = Android::version >= Android::kP ? 1053 : 1051;
+                if (UNLIKELY(uid == kWebViewZygoteUid)) {
+                    // WebView zygote
+                    return true;
+                }
+            }
+            return false;
         }
 
         static bool OnAppProcessStart(JNIEnv* env);

@@ -78,12 +78,7 @@ EXPORT_C void onModuleLoaded() {
 }
 
 EXPORT_C int shouldSkipUid(int uid) {
-    if (uid == 1000/*SYSTEM_UID*/) return 0;
-    if (uid == 1001/*RADIO_UID*/) return 0;
-
-    // Skip non-normal app process (e.g. isolated process, relro updater and webview zygote).
-    int app_id = uid % 100000;
-    return app_id >= 10000 && app_id <= 19999 ? 0 : 1;
+    return Dreamland::ShouldSkipUid(uid) ? 1 : 0;
 }
 
 static inline void Prepare(JNIEnv* env) {
@@ -93,10 +88,12 @@ static inline void Prepare(JNIEnv* env) {
 
 static inline void PostForkApp(JNIEnv* env, jint result) {
     if (result == 0 && !disabled) {
-        if (UNLIKELY(starting_child_zygote))
+        if (UNLIKELY(starting_child_zygote))  {
+            // This is a child zygote, it not allowed to do binder transaction
             LOGW("Skipping inject this process because it is child zygote");
-        else
+        } else {
             Dreamland::OnAppProcessStart(env);
+        }
     }
 }
 
