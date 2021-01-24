@@ -166,17 +166,16 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
                     || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)) return null;
         }
 
-        boolean enabled = false;
         if (!mGlobalModeEnabled) {
+            boolean enabled = false;
             for (String packageName : packages) {
                 if (mAppManager.isEnabled(packageName)) {
                     enabled = true;
                     break;
                 }
             }
+            if (!enabled) return null;
         }
-
-        if (!enabled) return null;
 
         return mEnabledModuleCache.get(packages);
     }
