@@ -19,6 +19,8 @@ import android.util.SparseBooleanArray;
 
 import androidx.annotation.Keep;
 
+import dalvik.system.InMemoryDexClassLoader;
+import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.DexCreator;
 import de.robv.android.xposed.XposedBridge;
 import top.canyie.dreamland.core.Dreamland;
@@ -35,6 +37,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
 
 import mirror.android.app.ActivityThread;
 import mirror.android.os.ServiceManager;
@@ -140,10 +143,11 @@ public final class Main {
         return 1;
     }
 
+    @SuppressLint("NewApi")
     private static void initXResources(ClassLoader myCL) throws Exception {
         Resources res = Resources.getSystem();
-        String dexForXResources = ensureSuperDexFor("XResources", res.getClass(), Resources.class);
 
+        Class resClass = res.getClass();
         Class<?> taClass = TypedArray.class;
         try {
             TypedArray ta = res.obtainTypedArray(res.getIdentifier("preloaded_drawables", "array", "android"));
@@ -153,10 +157,25 @@ public final class Main {
             XposedBridge.log(e);
         }
 
-        String dexForXTypedArray = ensureSuperDexFor("XTypedArray", taClass, TypedArray.class);
+        ClassLoader dummy;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Load dex from memory to prevent some detections
+            RuntimeUtils.makeExtendable(resClass);
+            RuntimeUtils.makeExtendable(taClass);
+            ByteBuffer dexForXResources = DexCreator.create("XResources", resClass);
+            ByteBuffer dexForXTypedArray = DexCreator.create("XTypedArray", taClass);
+            ByteBuffer[] buffers = new ByteBuffer[] {
+                    dexForXResources, dexForXTypedArray
+            };
+            dummy = new InMemoryDexClassLoader(buffers, myCL.getParent());
+        } else {
+            String dexForXResources = ensureSuperDexFor("XResources", resClass, Resources.class);
+            String dexForXTypedArray = ensureSuperDexFor("XTypedArray", taClass, TypedArray.class);
+            dummy = new PathClassLoader(dexForXResources + File.pathSeparator + dexForXTypedArray, myCL.getParent());
+        }
 
         // Inject a ClassLoader for the created classes as parent of XposedBridge's ClassLoader.
-        RuntimeUtils.injectDex(myCL, dexForXResources + File.pathSeparator + dexForXTypedArray);
+        RuntimeUtils.setParent(myCL, dummy);
 
         // native initialize resources hook.
         // this must be executed after XResourcesSuperClass is created,

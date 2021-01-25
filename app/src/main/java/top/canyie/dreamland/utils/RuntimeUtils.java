@@ -3,7 +3,7 @@ package top.canyie.dreamland.utils;
 import androidx.annotation.NonNull;
 
 import java.lang.reflect.Modifier;
-import dalvik.system.PathClassLoader;
+
 import top.canyie.dreamland.utils.reflect.Reflection;
 
 /**
@@ -26,8 +26,7 @@ public final class RuntimeUtils {
         }
     }
 
-    public static void injectDex(@NonNull ClassLoader target, @NonNull String path) {
-        PathClassLoader dummy = new PathClassLoader(path, target.getParent());
-        parent.setValue(target, dummy);
+    public static void setParent(@NonNull ClassLoader target, @NonNull ClassLoader newParent) {
+        parent.setValue(target, newParent);
     }
 }
