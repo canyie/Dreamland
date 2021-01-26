@@ -310,14 +310,6 @@ public final class Main {
                 return;
             }
 
-            String[] modules;
-            try {
-                modules = dm.getEnabledModulesFor();
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failure from remote dreamland service", e);
-                return;
-            }
-
             // Disable hidden api policy for application domain because modules may need it.
             // Restrictions for platform domain was disabled in init()
             Pine.disableHiddenApiPolicy(true, false);
@@ -341,7 +333,7 @@ public final class Main {
                                 Dreamland.packageName = appInfo.packageName.equals("android") ? "system" : appInfo.packageName;
                                 Dreamland.processName = ActivityThread.AppBindData.processName.getValue(appBindData);
                                 Dreamland.classLoader = loadedApk.getClassLoader();
-                                Dreamland.ready(dm);
+                                Dreamland.ready(dm, mainZygote);
                             } catch (Exception e) {
                                 Log.e(TAG, "Install hooks failed", e);
                             }
@@ -368,15 +360,6 @@ public final class Main {
                             }
                         }
                     });*/
-
-            try {
-                Dreamland.startResourcesHook(dm);
-            } catch (Throwable e) {
-                Log.e(TAG, "Start resources hook failed", e);
-                Dreamland.disableResourcesHook = true;
-            }
-
-            Dreamland.loadXposedModules(modules, mainZygote);
         } catch (Throwable e) {
             try {
                 Log.e(TAG, "Dreamland error in app process", e);

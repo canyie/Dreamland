@@ -50,13 +50,10 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private final ModuleManager mModuleManager;
 
     private volatile String[] mEnabledAppCache;
-    private final LruCache<String[], String[]> mEnabledModuleCache = new LruCache<String[], String[]>(128) {
-        @Override protected String[] create(String[] key) {
-            if (key.length == 0) return AppConstants.EMPTY_STRING_ARRAY;
+    private final LruCache<String, String[]> mEnabledModuleCache = new LruCache<String, String[]>(128) {
+        @Override protected String[] create(String key) {
             HashSet<String> set = new HashSet<>();
-            for (String p : key) {
-                mModuleManager.getEnabledFor(p, set);
-            }
+            mModuleManager.getEnabledFor(key, set);
             return set.toArray(new String[set.size()]);
         }
     };
@@ -169,35 +166,22 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mEnabledAppCache = null;
     }
 
-    @Override public String[] getEnabledModulesFor() throws RemoteException {
+    @Override public String[] getEnabledModulesFor(String packageName) throws RemoteException {
         if (mSafeModeEnabled) return null;
-        String[] packages = getPackagesForCallingUid();
-        if (packages == null || packages.length == 0) return null;
-        if (packages.length == 1) {
-            // Dreamland manager should never use sharedUserId.
-            String calling = packages[0];
-            if (Dreamland.MANAGER_PACKAGE_NAME.equals(calling)
-                    || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(calling)) return null;
-        }
 
-        if (!mGlobalModeEnabled) {
-            boolean enabled = false;
-            for (String packageName : packages) {
-                if (mAppManager.isEnabled(packageName)) {
-                    enabled = true;
-                    break;
-                }
-            }
-            if (!enabled) return null;
-        }
+        if (Dreamland.MANAGER_PACKAGE_NAME.equals(packageName)
+                || Dreamland.OLD_MANAGER_PACKAGE_NAME.equals(packageName)) return null;
 
-        return mEnabledModuleCache.get(packages);
+        boolean enabled = mGlobalModeEnabled || mAppManager.isEnabled(packageName);
+        if (!enabled) return null;
+
+        return mEnabledModuleCache.get(packageName);
     }
 
     public String[] getEnabledModulesForSystemServer() {
         if (mSafeModeEnabled) return null;
         if (!(mGlobalModeEnabled || mAppManager.isEnabled(AppConstants.ANDROID))) return null;
-        return mEnabledModuleCache.get(AppConstants.ARRAY_ANDROID);
+        return mEnabledModuleCache.get(AppConstants.ANDROID);
     }
 
     @Override public String[] getAllEnabledModules() throws RemoteException {

@@ -56,7 +56,7 @@ public final class Dreamland {
     private static boolean hooked;
     private static final CopyOnWriteSortedSet<XC_InitPackageResources> sInitPackageResourcesCallbacks = new CopyOnWriteSortedSet<>();
 
-    public static void ready(IDreamlandManager manager) {
+    public static void ready(IDreamlandManager manager, boolean mainZygote) {
         if (canLoadXposedModules()) {
             hooked = true;
             if (MANAGER_PACKAGE_NAME.equals(packageName)) {
@@ -89,12 +89,34 @@ public final class Dreamland {
                 }
                 return;
             }
+
+            String[] modules;
+            try {
+                modules = manager.getEnabledModulesFor(packageName);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failure from remote dreamland service", e);
+                return;
+            }
+
+            if (modules == null || modules.length == 0) {
+                Log.i(TAG, "No module needs to hook into this process, skip.");
+                return;
+            }
+
+            try {
+                startResourcesHook(manager);
+            } catch (Throwable e) {
+                Log.e(TAG, "Start resources hook failed", e);
+                Dreamland.disableResourcesHook = true;
+            }
+
+            Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
+            loadXposedModules(modules, mainZygote);
             callLoadPackage();
         }
     }
 
     public static void callLoadPackage() {
-        Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
         PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
     }
 
@@ -103,11 +125,6 @@ public final class Dreamland {
     }
 
     public static void loadXposedModules(String[] modules, boolean mainZygote) {
-        if (modules == null || modules.length == 0) {
-            //Log.d(TAG, "No module needed to load, skip.");
-            return;
-        }
-
         for (String module : modules) {
             if (TextUtils.isEmpty(module)) {
                 Log.e(TAG, "Module list contains empty, skipping");
