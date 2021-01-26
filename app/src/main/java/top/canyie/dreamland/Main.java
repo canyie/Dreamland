@@ -57,7 +57,6 @@ public final class Main {
     private static boolean classLoaderReady;
     private static boolean clipboardServiceReplaced, packageManagerReady, activityManagerReady;
     //private static int sWebViewZygoteUid = -1;
-    private static int sTranslationCode = IBinder.LAST_CALL_TRANSACTION;
     private static boolean mainZygote;
 
     public static int init() {
@@ -124,7 +123,6 @@ public final class Main {
                 }
             }*/
 
-            sTranslationCode = getAvailableTranslationCode();
             String realAbi = SystemProperties.get( "ro.product.cpu.abi", "");
             if (TextUtils.isEmpty(realAbi)) {
                 Log.e(TAG, "System property 'ro.product.cpu.abi' is missing on the device");
@@ -164,9 +162,7 @@ public final class Main {
             RuntimeUtils.makeExtendable(taClass);
             ByteBuffer dexForXResources = DexCreator.create("XResources", resClass);
             ByteBuffer dexForXTypedArray = DexCreator.create("XTypedArray", taClass);
-            ByteBuffer[] buffers = new ByteBuffer[] {
-                    dexForXResources, dexForXTypedArray
-            };
+            ByteBuffer[] buffers = new ByteBuffer[] { dexForXResources, dexForXTypedArray };
             dummy = new InMemoryDexClassLoader(buffers, myCL.getParent());
         } else {
             String dexForXResources = ensureSuperDexFor("XResources", resClass, Resources.class);
@@ -191,28 +187,6 @@ public final class Main {
         File dexFile = DexCreator.ensure(clz, realSuperClz, topClz);
         dexFile.setReadable(true, false);
         return dexFile.getAbsolutePath();
-    }
-
-    private static int getAvailableTranslationCode() throws Exception {
-        @SuppressLint("PrivateApi") Class<?> c = Class.forName("android.content.IClipboard$Stub");
-        SparseBooleanArray maybeUsing = new SparseBooleanArray();
-        for (Field field : c.getDeclaredFields()) {
-            if (field.getType() == int.class && Modifier.isStatic(field.getModifiers())) {
-                field.setAccessible(true);
-                maybeUsing.put(field.getInt(null), false);
-            }
-        }
-
-        // AIDL transaction code increases monotonically from FIRST_CALL_TRANSACTION
-        // Search forward from the LAST_CALL_TRANSACTION
-        // (But if LAST_CALL_TRANSACTION is used,
-        // remaining call transaction codes are also very likely to have been used.)
-        for (int i = IBinder.LAST_CALL_TRANSACTION; i >= IBinder.FIRST_CALL_TRANSACTION; i--) {
-            if (maybeUsing.get(i, true))
-                return i; // Not found in maybeUsing
-        }
-        // WTF?!
-        throw new RuntimeException("No call transaction code available");
     }
 
     public static void onSystemServerStart() {
@@ -255,7 +229,6 @@ public final class Main {
                 }
             });
 
-            final int translationCode = sTranslationCode;
             Object base = ServiceManager.getIServiceManager.callStatic();
             ServiceManager.sServiceManager.setStaticValue(Reflection.on("android.os.IServiceManager")
                     .proxy((proxy, method, args) -> {
@@ -263,7 +236,7 @@ public final class Main {
                             Object serviceName = args[0];
                             if (TARGET_BINDER_SERVICE_NAME.equals(serviceName)) {
                                 Log.i(TAG, "Replacing clipboard service");
-                                args[1] = new BinderServiceProxy((Binder) args[1], translationCode,
+                                args[1] = new BinderServiceProxy((Binder) args[1],
                                         TARGET_BINDER_SERVICE_DESCRIPTOR, dms, dms::isEnabledFor);
                                 //args[2] = true; // Do not supports isolated processes yet
                                 clipboardServiceReplaced = true;
@@ -319,8 +292,8 @@ public final class Main {
 
             final IDreamlandManager dm;
             try {
-                IBinder dmsBinder = BinderServiceProxy.transactRemote(clipboard,
-                        TARGET_BINDER_SERVICE_DESCRIPTOR, sTranslationCode);
+                IBinder dmsBinder = BinderServiceProxy.getBinderFrom(clipboard,
+                        TARGET_BINDER_SERVICE_DESCRIPTOR);
                 if (dmsBinder == null) {
                     // dmsBinder is null => should not hook into this process.
                     // DreamlandManager is not exposed to disabled app now.

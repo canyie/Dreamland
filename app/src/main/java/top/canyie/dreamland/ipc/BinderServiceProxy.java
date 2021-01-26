@@ -17,18 +17,18 @@ import java.io.FileDescriptor;
  * See function ibinderForJavaObject (in android_util_Binder.cpp)
  */
 public class BinderServiceProxy extends Binder {
+    private static final int GET_BINDER_TRANSACTION = ('_'<<24)|('D'<<16)|('M'<<8)|'S';
     private Binder base;
-    private int translation;
     private String descriptor;
     private IBinder service;
     private CallerVerifier verifier;
 
-    public static IBinder transactRemote(IBinder service, String descriptor, int code) throws RemoteException {
+    public static IBinder getBinderFrom(IBinder service, String descriptor) throws RemoteException {
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
             data.writeInterfaceToken(descriptor);
-            service.transact(code, data, reply, 0);
+            service.transact(GET_BINDER_TRANSACTION, data, reply, 0);
             reply.readException();
             return reply.readStrongBinder();
         } finally {
@@ -37,9 +37,8 @@ public class BinderServiceProxy extends Binder {
         }
     }
 
-    public BinderServiceProxy(Binder base, int code, String descriptor, IBinder service, CallerVerifier verifier) {
+    public BinderServiceProxy(Binder base, String descriptor, IBinder service, CallerVerifier verifier) {
         this.base = base;
-        this.translation = code;
         this.descriptor = descriptor;
         this.service = service;
         this.verifier = verifier;
@@ -71,7 +70,7 @@ public class BinderServiceProxy extends Binder {
 
     @Override protected boolean onTransact(int code, @NonNull Parcel data,
                                            @Nullable Parcel reply, int flags) throws RemoteException {
-        if (code == translation && verifier.canAccessService()) {
+        if (code == GET_BINDER_TRANSACTION && verifier.canAccessService()) {
             assert reply != null;
             data.enforceInterface(descriptor);
             reply.writeNoException();
