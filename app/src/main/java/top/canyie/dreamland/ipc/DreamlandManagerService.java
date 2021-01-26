@@ -1,20 +1,14 @@
 package top.canyie.dreamland.ipc;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.os.Binder;
-import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.util.Log;
 import android.util.LruCache;
-import android.widget.Toast;
 
 import top.canyie.dreamland.core.AppManager;
 import top.canyie.dreamland.core.Dreamland;
@@ -80,8 +74,6 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mSafeModeEnabled = new File(Dreamland.BASE_DIR, SAFE_MODE_FILENAME).exists();
         mGlobalModeEnabled = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME).exists();
         mResourcesHookEnabled = new File(Dreamland.BASE_DIR, ENABLE_RESOURCES_FILENAME).exists();
-
-        mAppUidMap.put(SYSTEM_UID, AppConstants.ARRAY_ANDROID);
     }
 
     public static DreamlandManagerService start() {

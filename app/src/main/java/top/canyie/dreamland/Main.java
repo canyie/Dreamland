@@ -11,11 +11,9 @@ import android.content.res.XResources;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.os.SystemProperties;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.SparseBooleanArray;
 
 import androidx.annotation.Keep;
 
@@ -34,9 +32,7 @@ import top.canyie.dreamland.utils.reflect.Reflection;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 
 import mirror.android.app.ActivityThread;
