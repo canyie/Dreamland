@@ -301,6 +301,11 @@ public final class Main {
                 }
                 dm = IDreamlandManager.Stub.asInterface(dmsBinder);
             } catch (Exception e) {
+                if (e.getClass() == RuntimeException.class
+                        && "Unknown transaction code".equals(e.getMessage())) {
+                    // Unknown transaction => remote service doesn't handle it, ignore this process.
+                    return;
+                }
                 Log.e(TAG, "Couldn't check whether the current process is needs to hook", e);
                 return;
             }

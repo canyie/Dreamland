@@ -28,8 +28,12 @@ public class BinderServiceProxy extends Binder {
         Parcel reply = Parcel.obtain();
         try {
             data.writeInterfaceToken(descriptor);
-            service.transact(GET_BINDER_TRANSACTION, data, reply, 0);
+            boolean success = service.transact(GET_BINDER_TRANSACTION, data, reply, 0);
             reply.readException();
+            if (!success) {
+                // Unknown transaction => remote service doesn't handle it, ignore this process.
+                return null;
+            }
             return reply.readStrongBinder();
         } finally {
             reply.recycle();
