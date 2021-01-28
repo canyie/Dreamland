@@ -166,15 +166,17 @@ on_install() {
   RIRU_MIN_API=$(grep_prop api $TMPDIR/module.prop)
   [[ $RIRU_API_VERSION -ge $RIRU_MIN_API ]] || abort "! Unsupported Riru API version $RIRU_API_VERSION"
 
-  if [[ $(pm path top.canyie.dreamland.manager) == "" ]]; then
-    if [[ $(pm path top.canyie.dreamland.manager) != "" ]]; then
-      ui_print "- Detected deprecated dreamland manager"
-      ui_print "- It is not compatible with current framework version"
-    else
-      ui_print "- Dreamland Manager not found"
-      ui_print "- You cannot manage Dreamland configurations"
+  if [[ ${BOOTMODE} == true ]]; then
+    if [[ $(pm path top.canyie.dreamland.manager) == "" ]]; then
+      if [[ $(pm path top.canyie.dreamland.manager) != "" ]]; then
+        ui_print "- Detected deprecated dreamland manager"
+        ui_print "- It is not compatible with current framework version"
+      else
+        ui_print "- Dreamland Manager not found"
+        ui_print "- You cannot manage Dreamland configurations"
+      fi
+      ui_print "- Please install new Dreamland Manager"
     fi
-    ui_print "- Please install new Dreamland Manager"
   fi
   
   ui_print "- Extracting module files"
