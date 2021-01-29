@@ -54,79 +54,48 @@ public final class Main {
     private static boolean clipboardServiceReplaced, packageManagerReady, activityManagerReady;
     //private static int sWebViewZygoteUid = -1;
     private static boolean mainZygote;
+    private static boolean inited;
 
-    public static int init() {
+    private static void commonInit(boolean system) {
+        inited = true;
+        ClassLoader classLoader = Main.class.getClassLoader();
+
+        // Try initialize resources hook first.
+        // This needs to be performed as early as possible to avoid trying to load XResources when XResourcesSuperClass is not loaded.
         try {
-            ClassLoader classLoader = Main.class.getClassLoader();
+            initXResources(classLoader);
+        } catch (Throwable e) {
+            Log.e(TAG, "Resources hook initialize failed", e);
+            Dreamland.disableResourcesHook = true;
+        }
 
-            // Try initialize resources hook first.
-            // This needs to be performed as early as possible to avoid trying to load XResources when XResourcesSuperClass is not loaded.
-            try {
-                initXResources(classLoader);
-            } catch (Throwable e) {
-                Log.e(TAG, "Resources hook initialize failed", e);
-                Dreamland.disableResourcesHook = true;
-            }
+        PineConfig.debug = true;
+        PineConfig.debuggable = false;
 
-            final String[] preloadClasses = {
-                    "mirror.android.app.ActivityThread",
-                    "mirror.android.app.ActivityThread$AppBindData",
-                    "mirror.android.os.ServiceManager",
-                    "top.canyie.dreamland.core.Dreamland",
-                    "top.canyie.dreamland.ipc.IDreamlandManager$Stub",
-                    "top.canyie.dreamland.ipc.IDreamlandManager$Stub$Proxy"
-            };
+        // Don't load another .so file, all codes are included in libriru_dreamland.so
+        PineConfig.libLoader = null;
 
-            for (String className : preloadClasses) {
-                try {
-                    Class.forName(className, true, classLoader);
-                } catch (Exception e) {
-                    Log.e(TAG, "Preload class failed for " + className, e);
-                }
-            }
+        // Don't disable hidden api policy by default, only do it in enabled apps.
+        // Module needs it, but framework itself don't.
+        // Framework's dex on /system/framework, is a platform dex file,
+        // and we will disable any restriction for platform domain.
+        PineConfig.disableHiddenApiPolicy = false;
+        Pine.ensureInitialized();
+        if (system) Pine.setJitCompilationAllowed(false);
 
-            PineConfig.debug = true;
-            PineConfig.debuggable = false;
+        String realAbi = SystemProperties.get( "ro.product.cpu.abi", "");
+        if (TextUtils.isEmpty(realAbi)) {
+            Log.e(TAG, "System property 'ro.product.cpu.abi' is missing on the device");
+            mainZygote = false;
+        } else {
+            // For 32-bit process running on 64-bit device, Build.CPU_ABI is 32-bit api
+            mainZygote = Build.CPU_ABI.equalsIgnoreCase(realAbi);
+        }
+    }
 
-            // Don't load another .so file, all codes are included in libriru_dreamland.so
-            PineConfig.libLoader = null;
-
-            // Don't disable hidden api policy by default, only do it in enabled apps.
-            // Module needs it, but framework itself don't.
-            // Framework's dex on /system/framework, is a platform dex file,
-            // and we will disable any restriction for platform domain.
-            PineConfig.disableHiddenApiPolicy = false;
-            Pine.ensureInitialized();
-            Pine.setJitCompilationAllowed(false);
-
-            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    Field field = Process.class.getDeclaredField("WEBVIEW_ZYGOTE_UID");
-                    field.setAccessible(true);
-                    sWebViewZygoteUid = field.getInt(null);
-                } catch (Exception e) {
-                    Log.e(TAG, "Could not get the WebView zygote uid", e);
-                    switch (Build.VERSION.SDK_INT) {
-                        case Build.VERSION_CODES.Q:
-                        case Build.VERSION_CODES.P:
-                            sWebViewZygoteUid = 1053;
-                            break;
-                        case Build.VERSION_CODES.O_MR1:
-                        case Build.VERSION_CODES.O:
-                            sWebViewZygoteUid = 1051;
-                            break;
-                    }
-                }
-            }*/
-
-            String realAbi = SystemProperties.get( "ro.product.cpu.abi", "");
-            if (TextUtils.isEmpty(realAbi)) {
-                Log.e(TAG, "System property 'ro.product.cpu.abi' is missing on the device");
-                mainZygote = false;
-            } else {
-                // For 32-bit process running on 64-bit device, Build.CPU_ABI is 32-bit api
-                mainZygote = Build.CPU_ABI.equalsIgnoreCase(realAbi);
-            }
+    public static int zygoteInit() {
+        try {
+            commonInit(true);
             return 0;
         } catch (Throwable e) {
             try {
@@ -187,6 +156,8 @@ public final class Main {
 
     public static void onSystemServerStart() {
         try {
+            //if (!inited) commonInit(true);
+
             // Start loading the properties asynchronously first to minimize time-consuming.
             DreamlandManagerService dms = DreamlandManagerService.start();
 
@@ -265,46 +236,50 @@ public final class Main {
         }
     }
 
-    public static void onAppProcessStart() {
+    public static void onAppProcessStart(IBinder service) {
         try {
-            /*if (sWebViewZygoteUid == Process.myUid())
-                return; // Disable framework for WebView zygote*/
+            /*if (inited) // JIT compilation was disabled in zygote
+                Pine.setJitCompilationAllowed(true);
+            else
+                commonInit(false);*/
 
             Dreamland.isSystem = false;
 
-            IBinder clipboard;
-            try {
-                clipboard = ServiceManager.getService.callStatic(TARGET_BINDER_SERVICE_NAME);
-            } catch (Exception e) {
-                Log.e(TAG, "Couldn't find the clipboard service", e);
-                return;
-            }
-
-            if (clipboard == null) {
-                // Isolated process or google gril service process is not allowed to access clipboard service
-                Log.w(TAG, "Clipboard service is unavailable in current process, skipping");
-                return;
-            }
-
-            final IDreamlandManager dm;
-            try {
-                IBinder dmsBinder = BinderServiceProxy.getBinderFrom(clipboard,
-                        TARGET_BINDER_SERVICE_DESCRIPTOR);
-                if (dmsBinder == null) {
-                    // dmsBinder is null => should not hook into this process.
-                    // DreamlandManager is not exposed to disabled app now.
+            if (service == null) {
+                // We only expect enter here on Nougat.
+                IBinder clipboard;
+                try {
+                    clipboard = ServiceManager.getService.callStatic(TARGET_BINDER_SERVICE_NAME);
+                } catch (Exception e) {
+                    Log.e(TAG, "Couldn't find the clipboard service", e);
                     return;
                 }
-                dm = IDreamlandManager.Stub.asInterface(dmsBinder);
-            } catch (Exception e) {
-                if (e.getClass() == RuntimeException.class
-                        && "Unknown transaction code".equals(e.getMessage())) {
-                    // Unknown transaction => remote service doesn't handle it, ignore this process.
+
+                if (clipboard == null) {
+                    // Isolated process or google gril service process is not allowed to access clipboard service
+                    Log.w(TAG, "Clipboard service is unavailable in current process, skipping");
                     return;
                 }
-                Log.e(TAG, "Couldn't check whether the current process is needs to hook", e);
-                return;
+
+                try {
+                    service = BinderServiceProxy.getBinderFrom(clipboard, TARGET_BINDER_SERVICE_DESCRIPTOR);
+                    if (service == null) {
+                        // service is null => should not hook into this process.
+                        // DreamlandManager is not exposed to disabled app now.
+                        return;
+                    }
+                } catch (Exception e) {
+                    if (e.getClass() == RuntimeException.class
+                            && "Unknown transaction code".equals(e.getMessage())) {
+                        // Unknown transaction => remote service doesn't handle it, ignore this process.
+                        return;
+                    }
+                    Log.e(TAG, "Couldn't check whether the current process is needs to hook", e);
+                    return;
+                }
             }
+
+            IDreamlandManager dm = IDreamlandManager.Stub.asInterface(service);
 
             // Disable hidden api policy for application domain because modules may need it.
             // Restrictions for platform domain was disabled in init()

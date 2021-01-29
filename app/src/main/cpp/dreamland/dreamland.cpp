@@ -12,6 +12,7 @@
 #include "../utils/jni_helper.h"
 #include "../pine.h"
 #include "resources_hook.h"
+#include "binder.h"
 
 using namespace dreamland;
 
@@ -96,8 +97,8 @@ bool Dreamland::javaInit(JNIEnv* env) {
         }
     }
     // 3. call java main()
-    jmethodID main = env->GetStaticMethodID(main_class.Get(), "init", "()I");
-    onAppProcessStart = env->GetStaticMethodID(main_class.Get(), "onAppProcessStart", "()V");
+    jmethodID main = env->GetStaticMethodID(main_class.Get(), "zygoteInit", "()I");
+    onAppProcessStart = env->GetStaticMethodID(main_class.Get(), "onAppProcessStart", "(Landroid/os/IBinder;)V");
     if (UNLIKELY(onAppProcessStart == nullptr)) {
         LOGE("Method onAppProcessStart() not found.");
         JNIHelper::AssertAndClearPendingException(env);
@@ -114,7 +115,7 @@ bool Dreamland::javaInit(JNIEnv* env) {
         return false;
     }
     if (UNLIKELY(status != 0)) {
-        LOGE("java init() returned error %d", status);
+        LOGE("java zygoteInit() returned error %d", status);
         return false;
     }
     java_main_class = reinterpret_cast<jclass>(env->NewGlobalRef(main_class.Get()));
@@ -128,6 +129,7 @@ bool Dreamland::InitializeImpl(JNIEnv* env) {
 #endif
     CHECK_FOR_JNI(env->GetJavaVM(&java_vm) == JNI_OK, "env->GetJavaVM failed");
     WellKnownClasses::Init(env);
+    if (Android::version >= Android::kO) Binder::Prepare(env);
     return javaInit(env);
 }
 
@@ -159,10 +161,20 @@ JNIEnv* Dreamland::GetJNIEnv() {
 
 bool Dreamland::OnAppProcessStart(JNIEnv* env) {
     if (UNLIKELY(!Prepare(env))) return false;
-    env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart);
-    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-        LOGE("Failed to call java callback method onAppProcessStart");
-        return false;
+    jobject service = nullptr;
+    bool except_null = true;
+    if (Android::version >= Android::kO) {
+        service = Binder::GetBinder(env);
+        Binder::Cleanup(env);
+        except_null = false;
+    }
+
+    if (UNLIKELY(except_null || service)) {
+        env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart, service);
+        if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
+            LOGE("Failed to call java callback method onAppProcessStart");
+            return false;
+        }
     }
     return true;
 }
@@ -171,7 +183,7 @@ bool Dreamland::OnSystemServerStart(JNIEnv* env) {
     if (UNLIKELY(!Prepare(env))) return false;
     env->CallStaticVoidMethod(instance->java_main_class, instance->onSystemServerStart);
     if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-        LOGE("Failed to call java callback method onSystemServerStart(");
+        LOGE("Failed to call java callback method onSystemServerStart");
         return false;
     }
     return true;
