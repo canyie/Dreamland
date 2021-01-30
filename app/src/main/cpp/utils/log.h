@@ -7,10 +7,8 @@
 
 #ifdef __cplusplus
 extern "C" {
-#include <cstdlib>
 constexpr const char *LOG_TAG = "Dreamland";
 #else
-#include <stdlib.h>
 #define LOG_TAG "Dreamland"
 #endif
 

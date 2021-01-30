@@ -14,7 +14,7 @@ android {
         externalNativeBuild {
             cmake {
                 cFlags "-Wall -Wextra -Werror -fvisibility=hidden"
-                cppFlags "-std=c++14"
+                cppFlags "-std=c++17"
                 arguments "-DRIRU_NEW_MODULE_API_VERSION=$rootProject.ext.riruNewApiVersion",
                     "-DRIRU_MODULE_VERSION_NAME=$rootProject.ext.versionName"
             }

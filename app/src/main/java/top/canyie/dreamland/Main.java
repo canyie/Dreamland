@@ -246,7 +246,6 @@ public final class Main {
             Dreamland.isSystem = false;
 
             if (service == null) {
-                // We only expect enter here on Nougat.
                 IBinder clipboard;
                 try {
                     clipboard = ServiceManager.getService.callStatic(TARGET_BINDER_SERVICE_NAME);

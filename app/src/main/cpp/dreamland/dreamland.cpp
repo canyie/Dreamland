@@ -5,6 +5,9 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <string>
+#include <vector>
+#include <asm/fcntl.h>
+#include <fcntl.h>
 #include "dreamland.h"
 #include "../utils/log.h"
 #include "../utils/scoped_local_ref.h"
@@ -129,7 +132,7 @@ bool Dreamland::InitializeImpl(JNIEnv* env) {
 #endif
     CHECK_FOR_JNI(env->GetJavaVM(&java_vm) == JNI_OK, "env->GetJavaVM failed");
     WellKnownClasses::Init(env);
-    if (Android::version >= Android::kO) Binder::Prepare(env);
+    // if (Android::version >= Android::kO) Binder::Prepare(env);
     return javaInit(env);
 }
 
@@ -161,7 +164,8 @@ JNIEnv* Dreamland::GetJNIEnv() {
 
 bool Dreamland::OnAppProcessStart(JNIEnv* env) {
     if (UNLIKELY(!Prepare(env))) return false;
-    jobject service = nullptr;
+
+    /*jobject service = nullptr;
     bool except_null = true;
     if (Android::version >= Android::kO) {
         service = Binder::GetBinder(env);
@@ -175,6 +179,11 @@ bool Dreamland::OnAppProcessStart(JNIEnv* env) {
             LOGE("Failed to call java callback method onAppProcessStart");
             return false;
         }
+    }*/
+    env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart, nullptr);
+    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
+        LOGE("Failed to call java callback method onAppProcessStart");
+        return false;
     }
     return true;
 }

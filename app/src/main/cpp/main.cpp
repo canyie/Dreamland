@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <jni.h>
 #include <unistd.h>
 #include <dlfcn.h>
