@@ -150,14 +150,12 @@ static void specializeAppProcessPre(
         jboolean *startChildZygote, jstring *instructionSet, jstring *appDataDir,
         jboolean *isTopApp, jobjectArray *pkgDataInfoList, jobjectArray *whitelistedDataInfoList,
         jboolean *bindMountAppDataDirs, jboolean *bindMountAppStorageDirs) {
-    // added from Android 10, but disabled at least in Google Pixel devices
     Prepare(env);
     starting_child_zygote = *startChildZygote;
 }
 
 static void specializeAppProcessPost(JNIEnv *env, jclass) {
-    // added from Android 10, but disabled at least in Google Pixel devices
-    // PostForkApp(env, 0);
+    PostForkApp(env, 0);
 }
 
 static void forkSystemServerPre(
