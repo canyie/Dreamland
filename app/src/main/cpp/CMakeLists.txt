@@ -26,6 +26,7 @@ add_library( # Sets the name of the library.
         dreamland/android.cpp
         dreamland/resources_hook.cpp
         dreamland/binder.cpp
+        dreamland/dex_loader.cpp
 
         # XHook
         external/xhook/xhook.c

@@ -5,6 +5,7 @@
 #ifndef DREAMLAND_DREAMLAND_H
 #define DREAMLAND_DREAMLAND_H
 
+#include <vector>
 #include <jni.h>
 #include "../utils/log.h"
 #include "../utils/macros.h"
@@ -17,16 +18,11 @@ namespace dreamland {
 
         static bool ShouldDisable();
 
-        static bool Prepare(JNIEnv* env);
+        static void Prepare();
+
+        static bool ZygoteInit(JNIEnv* env);
 
         static Dreamland* GetInstance() {
-            return instance;
-        }
-
-        static Dreamland* GetOrCreateInstance(JNIEnv* env) {
-            if (instance == nullptr) {
-                Prepare(env);
-            }
             return instance;
         }
 
@@ -62,15 +58,28 @@ namespace dreamland {
         JNIEnv* GetJNIEnv();
 
     private:
-        bool javaInit(JNIEnv* env);
+        bool ZygoteJavaInit(JNIEnv* env);
 
-        bool InitializeImpl(JNIEnv* env);
+        bool ZygoteInitImpl(JNIEnv* env);
+
+        bool RegisterNatives(JNIEnv* env, jclass main_class, jobject class_loader);
+
+        bool FindEntryMethods(JNIEnv* env, jclass main_class, bool app, bool system_server);
+
+        bool EnsureDexLoaded(JNIEnv* env, bool app);
+
+        bool LoadDexFromMemory(JNIEnv* env, bool app);
+
+        static void PreloadDexData();
+
+
 
         Dreamland();
 
         ~Dreamland();
 
         static Dreamland* instance;
+        static std::vector<char>* dex_data;
         JavaVM* java_vm;
         jclass java_main_class;
         jmethodID onSystemServerStart;

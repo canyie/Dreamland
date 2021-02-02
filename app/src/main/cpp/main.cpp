@@ -75,7 +75,7 @@ EXPORT_C void onModuleLoaded() {
             LOGE("Failed to hook JNI_CreateJavaVM");
         }
     }
-
+    Dreamland::Prepare();
 }
 
 EXPORT_C int shouldSkipUid(int uid) {
@@ -84,7 +84,7 @@ EXPORT_C int shouldSkipUid(int uid) {
 
 static inline void Prepare(JNIEnv* env) {
     if (disabled) return;
-    Dreamland::Prepare(env);
+    Dreamland::ZygoteInit(env);
 }
 
 static inline void PostForkApp(JNIEnv* env, jint result) {

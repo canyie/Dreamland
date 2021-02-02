@@ -75,11 +75,6 @@ public final class Main {
         // Don't load another .so file, all codes are included in libriru_dreamland.so
         PineConfig.libLoader = null;
 
-        // Don't disable hidden api policy by default, only do it in enabled apps.
-        // Module needs it, but framework itself don't.
-        // Framework's dex on /system/framework, is a platform dex file,
-        // and we will disable any restriction for platform domain.
-        PineConfig.disableHiddenApiPolicy = false;
         Pine.ensureInitialized();
         if (system) Pine.setJitCompilationAllowed(false);
 
@@ -156,7 +151,7 @@ public final class Main {
 
     public static void onSystemServerStart() {
         try {
-            //if (!inited) commonInit(true);
+            if (!inited) commonInit(true);
 
             // Start loading the properties asynchronously first to minimize time-consuming.
             DreamlandManagerService dms = DreamlandManagerService.start();
@@ -238,14 +233,15 @@ public final class Main {
 
     public static void onAppProcessStart(IBinder service) {
         try {
-            /*if (inited) // JIT compilation was disabled in zygote
+            if (inited) // JIT compilation was disabled in zygote
                 Pine.setJitCompilationAllowed(true);
             else
-                commonInit(false);*/
+                commonInit(false);
 
             Dreamland.isSystem = false;
 
             if (service == null) {
+                // We only expect that for Nougat.
                 IBinder clipboard;
                 try {
                     clipboard = ServiceManager.getService.callStatic(TARGET_BINDER_SERVICE_NAME);
@@ -279,12 +275,6 @@ public final class Main {
             }
 
             IDreamlandManager dm = IDreamlandManager.Stub.asInterface(service);
-
-            // Disable hidden api policy for application domain because modules may need it.
-            // Restrictions for platform domain was disabled in init()
-            Pine.disableHiddenApiPolicy(true, false);
-
-            Pine.setJitCompilationAllowed(true);
 
             Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("handleBindApplication",
                     ActivityThread.AppBindData.REF.unwrap()),

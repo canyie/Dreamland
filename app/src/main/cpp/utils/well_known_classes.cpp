@@ -12,7 +12,6 @@ bool WellKnownClasses::inited = false;
 jclass WellKnownClasses::java_lang_ClassLoader = nullptr;
 jclass WellKnownClasses::java_lang_String = nullptr;
 //jclass WellKnownClasses::java_lang_Thread = nullptr;
-jclass WellKnownClasses::dalvik_system_PathClassLoader = nullptr;
 //jclass WellKnownClasses::dalvik_system_DexClassLoader = nullptr;
 
 jmethodID WellKnownClasses::java_lang_ClassLoader_loadClass = nullptr;
@@ -42,7 +41,6 @@ void WellKnownClasses::Init(JNIEnv *env) {
     java_lang_ClassLoader = CacheClass(env, "java/lang/ClassLoader");
     java_lang_String = CacheClass(env, "java/lang/String");
     //java_lang_Thread = CacheClass(env, "java/lang/Thread");
-    dalvik_system_PathClassLoader = CacheClass(env, "dalvik/system/PathClassLoader");
     //dalvik_system_DexClassLoader = CacheClass(env, "dalvik/system/DexClassLoader");
 
     java_lang_ClassLoader_loadClass = CacheMethod(env, java_lang_ClassLoader, "loadClass",
@@ -59,7 +57,6 @@ void WellKnownClasses::Clear(JNIEnv *env) {
     ClearGlobalReference(env, &java_lang_ClassLoader);
     ClearGlobalReference(env, &java_lang_String);
     //ClearGlobalReference(env, &java_lang_Thread);
-    ClearGlobalReference(env, &dalvik_system_PathClassLoader);
     //ClearGlobalReference(env, &dalvik_system_DexClassLoader);
 
     java_lang_ClassLoader_loadClass = nullptr;

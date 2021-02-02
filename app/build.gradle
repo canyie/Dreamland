@@ -136,7 +136,21 @@ task copyNativeLibs() {
     onlyIf { !stripReleaseDebugSymbols.state.upToDate || !file(nativeDir).exists() }
 }
 
-task jarClassesDex(type: Jar) {
+task jarClassesDex() {
+    doLast {
+        copy {
+            from mergeDexRelease.outputs.files
+            into file(jarOutputDir)
+            rename 'classes.dex', 'dreamland.jar'
+        }
+    }
+
+    // FIXME: the task always up-to-date, disable up-to-date now
+    // onlyIf { !mergeDexRelease.state.upToDate || !file(jarOutputPath).exists() }
+    outputs.upToDateWhen { false }
+}
+
+/*task jarClassesDex(type: Jar) {
     def dexDir = file("$localDir/dex")
 
     doFirst {
@@ -153,7 +167,7 @@ task jarClassesDex(type: Jar) {
     // FIXME: the task always up-to-date, disable up-to-date now
     // onlyIf { !mergeDexRelease.state.upToDate || !file(jarOutputPath).exists() }
     outputs.upToDateWhen { false }
-}
+}*/
 
 task zipMagiskFiles(type: Zip) {
     from file(tempTemplatePath)

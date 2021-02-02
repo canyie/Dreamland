@@ -5,9 +5,12 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <string>
-#include <vector>
-#include <asm/fcntl.h>
+#include <iterator>
 #include <fcntl.h>
+#include <cerrno>
+#include <sys/stat.h>
+#include <fstream>
+#include <sstream>
 #include "dreamland.h"
 #include "../utils/log.h"
 #include "../utils/scoped_local_ref.h"
@@ -16,10 +19,12 @@
 #include "../pine.h"
 #include "resources_hook.h"
 #include "binder.h"
+#include "dex_loader.h"
 
 using namespace dreamland;
 
 Dreamland* Dreamland::instance = nullptr;
+std::vector<char>* Dreamland::dex_data = nullptr;
 
 static jboolean Main_initXResourcesNative(JNIEnv* env, jclass, jobject classLoader) {
     return static_cast<jboolean>(ResourcesHook::Init(env, classLoader));
@@ -45,72 +50,50 @@ bool Dreamland::ShouldDisable() {
     return false;
 }
 
-bool Dreamland::javaInit(JNIEnv* env) {
+void Dreamland::PreloadDexData() {
+    std::string core_jar_file(kCoreJarFile);
+    std::ifstream is(core_jar_file, std::ios::binary);
+    if (UNLIKELY(!is.good())) {
+        LOGE("Cannot open the core dex file: %s", strerror(errno));
+        return;
+    }
+    dex_data = new std::vector<char>{std::istreambuf_iterator<char>(is),
+            std::istreambuf_iterator<char>()};
+    is.close();
+}
+
+void Dreamland::Prepare() {
+    if (Android::version >= Android::kO) PreloadDexData();
+}
+
+bool Dreamland::ZygoteJavaInit(JNIEnv* env) {
     ScopedLocalRef<jclass> main_class(env);
     // 1. load core jar
     {
-        ScopedLocalRef<jobject> class_loader(env);
-        {
-            ScopedLocalRef<jstring> dex_path(env, Dreamland::kCoreJarFile);
-            ScopedLocalRef<jobject> system_class_loader(env, env->CallStaticObjectMethod(
-                    WellKnownClasses::java_lang_ClassLoader,
-                    WellKnownClasses::java_lang_ClassLoader_getSystemClassLoader));
-
-            jmethodID constructor = env->GetMethodID(
-                    WellKnownClasses::dalvik_system_PathClassLoader,
-                    "<init>",
-                    "(Ljava/lang/String;Ljava/lang/ClassLoader;)V");
-            CHECK_FOR_JNI(constructor != nullptr,
-                          "dalvik.system.PathClassLoader.<init>(java.lang.String, java.lang.ClassLoader) not found");
-            class_loader.Reset(env->NewObject(WellKnownClasses::dalvik_system_PathClassLoader, constructor,
-                                   dex_path.Get(), system_class_loader.Get()));
-            if (JNIHelper::ExceptionCheck(env)) {
-                LOGE("can't load the core jar");
-                return false;
-            }
+        ScopedLocalRef<jobject> class_loader(env, DexLoader::FromFile(env, kCoreJarFile));
+        if (UNLIKELY(class_loader.IsNull())) {
+            LOGE("Can't load the core jar file!!");
+            return false;
         }
 
         // 2. Register native methods
         {
-            main_class.Reset(JNIHelper::FindClassFromClassLoader(env, "top.canyie.dreamland.Main", class_loader.Get()));
+            main_class.Reset(JNIHelper::FindClassFromClassLoader(env, "top.canyie.dreamland.Main",
+                                                                 class_loader.Get()));
             if (JNIHelper::ExceptionCheck(env)) {
                 LOGE("main_class not found");
                 return false;
             }
-
-            env->RegisterNatives(main_class.Get(), gMainNativeMethods, NELEM(gMainNativeMethods));
-
-            ScopedLocalRef<jclass> pine_class(env,
-                    JNIHelper::FindClassFromClassLoader(env, "top.canyie.pine.Pine", class_loader.Get()));
-            if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-                LOGE("Failed to load Pine class.");
-                return false;
-            }
-            ScopedLocalRef<jclass> ruler_class(env,
-                    JNIHelper::FindClassFromClassLoader(env, "top.canyie.pine.Ruler", class_loader.Get()));
-            if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-                LOGE("Failed to load Ruler class.");
-                return false;
-            }
-            if (UNLIKELY(!(register_Pine(env, pine_class.Get()) &&
-                           register_Ruler(env, ruler_class.Get())))) {
-                LOGE("Failed to register native methods.");
+            if (UNLIKELY(!RegisterNatives(env, main_class.Get(), class_loader.Get()))) {
+                LOGE("Failed to register native methods");
                 return false;
             }
         }
     }
     // 3. call java main()
     jmethodID main = env->GetStaticMethodID(main_class.Get(), "zygoteInit", "()I");
-    onAppProcessStart = env->GetStaticMethodID(main_class.Get(), "onAppProcessStart", "(Landroid/os/IBinder;)V");
-    if (UNLIKELY(onAppProcessStart == nullptr)) {
-        LOGE("Method onAppProcessStart() not found.");
-        JNIHelper::AssertAndClearPendingException(env);
-        return false;
-    }
-    onSystemServerStart = env->GetStaticMethodID(main_class.Get(), "onSystemServerStart", "()V");
-    if (UNLIKELY(onSystemServerStart == nullptr)) {
-        LOGE("Method onSystemServerStart() not found.");
-        JNIHelper::AssertAndClearPendingException(env);
+    if (UNLIKELY(!FindEntryMethods(env, main_class.Get(), true, true))) {
+        LOGE("Failed to find some entry methods");
         return false;
     }
     jint status = env->CallStaticIntMethod(main_class.Get(), main);
@@ -125,27 +108,31 @@ bool Dreamland::javaInit(JNIEnv* env) {
     return true;
 }
 
-bool Dreamland::InitializeImpl(JNIEnv* env) {
+bool Dreamland::ZygoteInitImpl(JNIEnv* env) {
 #ifdef DREAMLAND_DISABLE
     LOGW("Dreamland is disabled. Skipped initialize.");
     return false;
 #endif
     CHECK_FOR_JNI(env->GetJavaVM(&java_vm) == JNI_OK, "env->GetJavaVM failed");
     WellKnownClasses::Init(env);
-    // if (Android::version >= Android::kO) Binder::Prepare(env);
-    return javaInit(env);
+    DexLoader::Prepare(env);
+    if (Android::version >= Android::kO) {
+        return Binder::Prepare(env);
+    } else {
+        return ZygoteJavaInit(env);
+    }
 }
 
-bool Dreamland::Prepare(JNIEnv* env) {
-    static bool tried_to_init = false;
+bool Dreamland::ZygoteInit(JNIEnv* env) {
+    static bool tried_to_prepare = false;
     if (UNLIKELY(instance == nullptr)) {
-        if (UNLIKELY(tried_to_init)) {
+        if (UNLIKELY(tried_to_prepare)) {
             return false;
         }
-        tried_to_init = true;
+        tried_to_prepare = true;
         instance = new Dreamland;
-        if (UNLIKELY(!instance->InitializeImpl(env))) {
-            LOGE("Dreamland::InitializeImpl() returned false.");
+        if (UNLIKELY(!instance->ZygoteInitImpl(env))) {
+            LOGE("Dreamland::ZygoteInitImpl() returned false.");
             delete instance;
             instance = nullptr;
             return false;
@@ -153,6 +140,30 @@ bool Dreamland::Prepare(JNIEnv* env) {
     }
     return true;
 }
+
+bool Dreamland::RegisterNatives(JNIEnv* env, jclass main_class, jobject class_loader) {
+    env->RegisterNatives(main_class, gMainNativeMethods, NELEM(gMainNativeMethods));
+
+    ScopedLocalRef<jclass> pine_class(env, JNIHelper::FindClassFromClassLoader(env,
+            "top.canyie.pine.Pine", class_loader));
+    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
+        LOGE("Failed to load Pine class.");
+        return false;
+    }
+    ScopedLocalRef<jclass> ruler_class(env, JNIHelper::FindClassFromClassLoader(
+            env, "top.canyie.pine.Ruler", class_loader));
+    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
+        LOGE("Failed to load Ruler class.");
+        return false;
+    }
+    if (UNLIKELY(!(register_Pine(env, pine_class.Get()) &&
+                   register_Ruler(env, ruler_class.Get())))) {
+        LOGE("Failed to register native methods.");
+        return false;
+    }
+    return true;
+}
+
 
 JNIEnv* Dreamland::GetJNIEnv() {
     JNIEnv* env = nullptr;
@@ -162,10 +173,67 @@ JNIEnv* Dreamland::GetJNIEnv() {
     return env;
 }
 
-bool Dreamland::OnAppProcessStart(JNIEnv* env) {
-    if (UNLIKELY(!Prepare(env))) return false;
+bool Dreamland::EnsureDexLoaded(JNIEnv* env, bool app) {
+    if (java_main_class == nullptr) {
+        // Dex not loaded
+        return LoadDexFromMemory(env, app);
+    }
+    return true;
+}
 
-    /*jobject service = nullptr;
+bool Dreamland::LoadDexFromMemory(JNIEnv* env, bool app) {
+    ScopedLocalRef<jclass> main_class(env);
+    {
+        ScopedLocalRef<jobject> class_loader(env, DexLoader::FromMemory(env, dex_data->data(), dex_data->size()));
+        if (UNLIKELY(class_loader.IsNull())) {
+            LOGE("Failed to load the core jar from memory");
+            return false;
+        }
+
+        main_class.Reset(JNIHelper::FindClassFromClassLoader(env, "top.canyie.dreamland.Main",
+                class_loader.Get()));
+        if (JNIHelper::ExceptionCheck(env)) {
+            LOGE("main_class not found");
+            return false;
+        }
+        if (UNLIKELY(!RegisterNatives(env, main_class.Get(), class_loader.Get()))) {
+            LOGE("Failed to register native methods");
+            return false;
+        }
+    }
+    if (UNLIKELY(!FindEntryMethods(env, main_class.Get(), app, !app))) {
+        LOGE("Failed to find entry methods for %s process", app ? "app" : "system_server");
+        return false;
+    }
+    java_main_class = reinterpret_cast<jclass>(env->NewGlobalRef(main_class.Get()));
+    return true;
+}
+
+bool Dreamland::FindEntryMethods(JNIEnv* env, jclass main_class, bool app, bool system_server) {
+    if (app) {
+        onAppProcessStart = env->GetStaticMethodID(main_class, "onAppProcessStart", "(Landroid/os/IBinder;)V");
+        if (UNLIKELY(onAppProcessStart == nullptr)) {
+            LOGE("Method onAppProcessStart() not found.");
+            JNIHelper::AssertAndClearPendingException(env);
+            return false;
+        }
+    }
+    if (system_server) {
+        onSystemServerStart = env->GetStaticMethodID(main_class, "onSystemServerStart", "()V");
+        if (UNLIKELY(onSystemServerStart == nullptr)) {
+            LOGE("Method onSystemServerStart() not found.");
+            JNIHelper::AssertAndClearPendingException(env);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Dreamland::OnAppProcessStart(JNIEnv* env) {
+    if (UNLIKELY(instance == nullptr)) return false;
+    //if (UNLIKELY(!ZygoteInit(env))) return false;
+
+    jobject service = nullptr;
     bool except_null = true;
     if (Android::version >= Android::kO) {
         service = Binder::GetBinder(env);
@@ -174,22 +242,26 @@ bool Dreamland::OnAppProcessStart(JNIEnv* env) {
     }
 
     if (UNLIKELY(except_null || service)) {
+        if (UNLIKELY(!instance->EnsureDexLoaded(env, true))) {
+            LOGE("Failed to load dex data in app process");
+            return false;
+        }
         env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart, service);
         if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
             LOGE("Failed to call java callback method onAppProcessStart");
             return false;
         }
-    }*/
-    env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart, nullptr);
-    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-        LOGE("Failed to call java callback method onAppProcessStart");
-        return false;
     }
     return true;
 }
 
 bool Dreamland::OnSystemServerStart(JNIEnv* env) {
-    if (UNLIKELY(!Prepare(env))) return false;
+    if (UNLIKELY(instance == nullptr)) return false;
+    //if (UNLIKELY(!ZygoteInit(env))) return false;
+    if (UNLIKELY(!instance->EnsureDexLoaded(env, false))) {
+        LOGE("Failed to load dex data in system_server");
+        return false;
+    }
     env->CallStaticVoidMethod(instance->java_main_class, instance->onSystemServerStart);
     if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
         LOGE("Failed to call java callback method onSystemServerStart");

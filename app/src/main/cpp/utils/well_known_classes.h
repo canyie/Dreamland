@@ -17,8 +17,6 @@ namespace dreamland {
         static jclass java_lang_ClassLoader;
         static jclass java_lang_String;
         //static jclass java_lang_Thread;
-        static jclass dalvik_system_PathClassLoader;
-        //static jclass dalvik_system_DexClassLoader;
 
         static jmethodID java_lang_ClassLoader_loadClass;
         static jmethodID java_lang_ClassLoader_getSystemClassLoader;
@@ -26,14 +24,15 @@ namespace dreamland {
         static void Init(JNIEnv *env);
 
         static void Clear(JNIEnv *env);
-    private:
-        static bool inited;
 
         static jclass CacheClass(JNIEnv *env, const char *name);
-
         static jmethodID
         CacheMethod(JNIEnv *env, jclass klass, const char *name, const char *signature,
                     bool is_static);
+    private:
+        static bool inited;
+
+
 
         static void ClearGlobalReference(JNIEnv *env, jclass *ptr) {
             env->DeleteGlobalRef(*ptr);
