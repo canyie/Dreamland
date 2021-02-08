@@ -1,3 +1,5 @@
+SKIPUNZIP=1
+
 RIRU_OLD_PATH=/data/misc/riru
 RIRU_OLD_MODULE_PATH=$RIRU_OLD_PATH/modules/dreamland
 RIRU_NEW_PATH=/data/adb/riru
@@ -7,7 +9,7 @@ DREAMLAND_PATH=/data/misc/dreamland
 ui_print "- Loading languages"
 unzip -o "$ZIPFILE" languages.sh -d "$TMPDIR" >&2
 [[ -f "$TMPDIR/languages.sh" ]] || abort "! Unable to extract languages.sh"
-. "$TMPDIR"/languages.sh
+. "$TMPDIR/languages.sh"
 
 if [[ "$ARCH" != "arm64" && "$ARCH" != "arm" ]]; then
   abort "! $ERR_UNSUPPORTED_ARCH $ARCH"
@@ -51,7 +53,7 @@ if [[ "${BOOTMODE}" == "true" ]]; then
 fi
 
 ui_print "- $ALERT_EXTRACT_MODULE_FILES"
-unzip -oj "$ZIPFILE" module.prop uninstall.sh 'common/*' -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_MODULE_FILES $?"
+unzip -o "$ZIPFILE" module.prop uninstall.sh post-fs-data.sh service.sh sepolicy.rule system.prop -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_MODULE_FILES $?"
 unzip -o "$ZIPFILE" 'system/*' -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_SYSTEM_FOLDER $?"
 
 if [[ "$IS64BIT" == "false" ]]; then
