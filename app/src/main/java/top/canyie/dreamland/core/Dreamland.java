@@ -8,6 +8,7 @@ import android.content.res.Resources;
 import android.content.res.ResourcesKey;
 import android.content.res.TypedArray;
 import android.content.res.XResources;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -174,8 +175,9 @@ public final class Dreamland {
         // Dreamland: only supports android 7.0+
         final Class<?> classGTLR = Class.forName("android.app.ResourcesManager");
         final ThreadLocal<Object> latestResKey = new ThreadLocal<>();
+        final String createResources = Build.VERSION.SDK_INT < 30 ? "getOrCreateResources" : "createResources";
 
-        hookAllMethods(classGTLR, "getOrCreateResources", new XC_MethodHook() {
+        hookAllMethods(classGTLR, createResources, new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 // At least on OnePlus 5, the method has an additional parameter compared to AOSP.
