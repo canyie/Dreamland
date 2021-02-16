@@ -21,14 +21,23 @@ public final class SELinuxHelper {
     // Dreamland changed: Only supports DirectAccessService
     private static BaseService sServiceAppDataFile = new DirectAccessService();
 
-    private SELinuxHelper() {}
-
-    // Dreamland changed: SELinuxHelper.initOnce() is public
-    public static void initOnce() {
+    // Dreamland changed: sIsSELinuxEnabled will be initialized in static block
+    static {
         try {
             sIsSELinuxEnabled = SELinux.isSELinuxEnabled();
-        } catch (NoClassDefFoundError ignored) {}
+        } catch (NoClassDefFoundError ignored) {
+        }
     }
+
+    private SELinuxHelper() {}
+
+    // Dreamland changed: Don't use SELinuxHelper.initOnce(), sIsSELinuxEnabled will be initialized in static block
+//    public static void initOnce() {
+//        try {
+//            sIsSELinuxEnabled = SELinux.isSELinuxEnabled();
+//        } catch (NoClassDefFoundError ignored) {}
+//    }
+
 
     /**
      * Determines whether SELinux is permissive or enforcing.
