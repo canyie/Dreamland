@@ -172,7 +172,7 @@ task jarClassesDex() {
 task zipMagiskFiles(type: Zip) {
     from file(tempTemplatePath)
     destinationDir file(releasePath)
-    baseName "magisk-${moduleProp['id']}-v${moduleProp['version']}"
+    baseName "magisk-dreamland-v${moduleProp['version']}"
 }
 
 task assembleMagiskRelease(type: GradleBuild, dependsOn: build) {
