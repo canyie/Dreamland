@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import top.canyie.dreamland.utils.reflect.Reflection;
+import top.canyie.dreamland.utils.reflect.UncheckedNoSuchMethodException;
 import top.canyie.pine.utils.Primitives;
 import top.canyie.pine.xposed.PineXposed;
 
@@ -42,6 +43,7 @@ import static de.robv.android.xposed.XposedHelpers.*;
 public final class Dreamland {
     public static final String TAG = "Dreamland";
     public static final int VERSION = BuildConfig.VERSION_CODE;
+    public static final String VERSION_NAME = BuildConfig.VERSION_NAME;
     public static final String MANAGER_PACKAGE_NAME = "top.canyie.dreamland.manager";
     public static final String OLD_MANAGER_PACKAGE_NAME = "com.canyie.dreamland.manager";
     public static final File BASE_DIR = new File("/data/misc/dreamland/");
@@ -60,11 +62,19 @@ public final class Dreamland {
         if (canLoadXposedModules()) {
             hooked = true;
             if (MANAGER_PACKAGE_NAME.equals(packageName)) {
-                Log.i(TAG, "This is dreamland manager.");
+                Log.i(TAG, "This app is dreamland manager.");
+
                 try {
-                    Reflection.on("top.canyie.dreamland.manager.core.Dreamland", classLoader)
-                            .method("init", int.class, IBinder.class)
-                            .callStatic(VERSION, manager.asBinder());
+                    Reflection<?> ref = Reflection.on("top.canyie.dreamland.manager.core.Dreamland", classLoader);
+                    IBinder binder = manager.asBinder();
+                    try {
+                        ref.method("init", String.class, int.class, IBinder.class)
+                                .callStatic(VERSION_NAME, VERSION, binder);
+                    } catch (UncheckedNoSuchMethodException ignored) {
+                        // Try beta version
+                        ref.method("init", int.class, IBinder.class)
+                                .callStatic(VERSION, binder);
+                    }
                 } catch (Throwable e) {
                     // should never happen
                     Log.e(TAG, "Failed to init manager", e);

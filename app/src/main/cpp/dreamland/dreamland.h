@@ -72,8 +72,6 @@ namespace dreamland {
 
         static void PreloadDexData();
 
-
-
         Dreamland();
 
         ~Dreamland();
