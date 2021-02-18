@@ -5,6 +5,11 @@ DATADIR=/data/misc/dreamland
 
 [[ -f "$DATADIR/disable" ]] && exit 0
 
+if [[ -f "$DATADIR/verbose_logcat" ]]; then
+  now=$(date "+%Y%m%d%H%M%S")
+  logcat > "/data/local/tmp/log_$now.log" &
+fi
+
 [[ -f "$DATADIR/bootloop_protection" ]] || exit 0
 
 MAIN_ZYGOTE_NICENAME=zygote

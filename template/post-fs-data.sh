@@ -2,11 +2,6 @@
 
 MODDIR=${0%/*}
 
-if [[ ! -f "/data/misc/dreamland/disable_logcat" ]]; then
-  now=$(date "+%Y%m%d%H%M%S")
-  logcat > "/data/local/tmp/log_$now.log" &
-fi
-
 [[ -f "${MODDIR}/sepolicy.rule" ]] && exit 0
 
 magiskpolicy --live "allow zygote zygote process { execmem }" \
