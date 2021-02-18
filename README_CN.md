@@ -19,11 +19,11 @@
 4. 安装[Dreamland Manager](https://github.com/canyie/DreamlandManager/releases)。
 5. 重启. (对于 Magisk < 21006, 你需要重启至少两次。)
 
-## Download
+## 下载
 - Alpha: 测试版本，由开发者发布。从我们的 [GitHub Release](https://github.com/canyie/Dreamland/releases) 中下载。
 - Canary: 测试版本，由CI自动构建，使用风险自负。可以在 [Azure Pipelines](https://dev.azure.com/ssz33334930121/ssz3333493/_build/latest?definitionId=1&branchName=master) 下载到.
 
-## Known issue
+## 已知问题
 - Pending hook 目前还不支持，hook静态方法会初始化它所在的类，一些模块可能无法正常工作。已知不工作的模块：哔哩布丁。
 
 ## 交流

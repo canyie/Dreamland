@@ -23,7 +23,7 @@ Dreamland is a Xposed framework implementation, You can use it directly to use X
 - Alpha: Test version, released by the developer, download from our [GitHub Release Page](https://github.com/canyie/Dreamland/releases).
 - Canary: Test version, automatically build by CI, use of the version is at your own risk. Download from [Azure Pipelines](https://dev.azure.com/ssz33334930121/ssz3333493/_build/latest?definitionId=1&branchName=master).
 
-## Known issue
+## Known issues
 - Pending hook is not supported yet, some modules may not work properly. Known not working module: Bili Pudding.
 
 ## Discussion
