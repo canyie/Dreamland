@@ -62,6 +62,6 @@ else
   WARN_OLD_MANAGER_2="It is not compatible with current framework version"
   WARN_MANAGER_NOT_INSTALLED_1="Dreamland Manager not found"
   WARN_MANAGER_NOT_INSTALLED_2="You cannot manage Dreamland configurations"
-  WARN_PLEASE_INSTALL_NEW_MANAGER="Please install new Dreamland Manager"
+  WARN_PLEASE_INSTALL_NEW_MANAGER="Please install new Dreamland Manager at https://github.com/canyie/DreamlandManager/releases"
 fi
 

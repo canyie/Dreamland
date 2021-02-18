@@ -1,6 +1,6 @@
 # Dreamland [![Build Status](https://dev.azure.com/ssz33334930121/ssz3333493/_apis/build/status/canyie.Dreamland?branchName=master)](https://dev.azure.com/ssz33334930121/ssz3333493/_build/latest?definitionId=1&branchName=master)
 
-[中文版本](README_CN.md)
+[中文版本](https://github.com/canyie/Dreamland/blob/master/README_CN.md)
 
 ## Introduction
 Dreamland is a Xposed framework implementation, You can use it directly to use Xposed modules.
