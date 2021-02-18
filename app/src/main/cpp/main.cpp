@@ -45,7 +45,7 @@ jint hook_JNI_CreateJavaVM(JavaVM** p_vm, JNIEnv** p_env, void* vm_args) {
 }
 
 EXPORT_C void onModuleLoaded() {
-    LOGI("Welcome to Dreamland v%d!", Dreamland::VERSION);
+    LOGI("Welcome to Dreamland %s (%d)!", Dreamland::VERSION_NAME, Dreamland::VERSION);
     disabled = Dreamland::ShouldDisable();
     if (UNLIKELY(disabled)) {
         LOGW("Dreamland framework should be disabled, do nothing.");
