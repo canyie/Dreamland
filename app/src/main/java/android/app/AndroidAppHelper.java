@@ -3,10 +3,7 @@ package android.app;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.res.CompatibilityInfo;
-import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.os.Build;
-import android.os.IBinder;
 import android.view.Display;
 
 import androidx.annotation.Keep;
@@ -18,8 +15,6 @@ import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 
 import static de.robv.android.xposed.XposedHelpers.findClass;
-import static de.robv.android.xposed.XposedHelpers.findFieldIfExists;
-import static de.robv.android.xposed.XposedHelpers.findMethodExactIfExists;
 import static de.robv.android.xposed.XposedHelpers.getObjectField;
 import static de.robv.android.xposed.XposedHelpers.newInstance;
 import static de.robv.android.xposed.XposedHelpers.setFloatField;
@@ -151,9 +146,7 @@ import static de.robv.android.xposed.XposedHelpers.setFloatField;
 //			resourcesKey = createResourcesKey(resDir, resources.hashCode());
 //		}
 
-		// Dreamland changed: Create instance for {@link CompatibilityInfo} directly
-//		CompatibilityInfo compatInfo = (CompatibilityInfo) newInstance(CompatibilityInfo.class);
-		CompatibilityInfo compatInfo = new CompatibilityInfo();
+		CompatibilityInfo compatInfo = (CompatibilityInfo) newInstance(CompatibilityInfo.class);
 		setFloatField(compatInfo, "applicationScale", resources.hashCode());
 
 		// Dreamland changed: inline createResourcesKey
