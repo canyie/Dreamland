@@ -1,11 +1,11 @@
 SIMPLIFIED_CHINESE=false
-if [[ "$BOOTMODE" == "true" ]]; then
+if [ "$BOOTMODE" = "true" ]; then
   locale=$(getprop persist.sys.locale|awk -F "-" '{print $1"_"$NF}')
-  [[ "$locale" == "" ]] && locale=$(settings get system system_locales|awk -F "," '{print $1}'|awk -F "-" '{print $1"_"$NF}')
-  [[ "$locale" == "zh_CN" ]] && SIMPLIFIED_CHINESE=true
+  [ "$locale" = "" ] && locale=$(settings get system system_locales|awk -F "," '{print $1}'|awk -F "-" '{print $1"_"$NF}')
+  [ "$locale" = "zh_CN" ] && SIMPLIFIED_CHINESE=true
 fi
 
-if [[ "$SIMPLIFIED_CHINESE" == "true" ]]; then
+if [ "$SIMPLIFIED_CHINESE" = "true" ]; then
   ALERT_ARCH="设备架构："
   ALERT_ANDROID_API="Android API级别："
   ALERT_RIRU_API="Riru API版本："
