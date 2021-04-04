@@ -25,7 +25,7 @@ bool disabled = false;
 bool starting_child_zygote = false;
 jint (*orig_JNI_CreateJavaVM)(JavaVM**, JNIEnv**, void*) = nullptr;
 int uid_ = -1;
-int* riru_allow_unload_= nullptr;
+int* riru_allow_unload_ = nullptr;
 
 void AllowUnload() {
     if (riru_allow_unload_) *riru_allow_unload_ = 1;
@@ -80,23 +80,31 @@ EXPORT void onModuleLoaded() {
     Dreamland::Prepare();
 }
 
+bool SkipThis() {
+    return uid_ != -1 && Dreamland::ShouldSkipUid(uid_);
+}
+
 EXPORT int shouldSkipUid(int uid) {
     return Dreamland::ShouldSkipUid(uid) ? 1 : 0;
 }
 
 static inline void Prepare(JNIEnv* env) {
-    if (disabled) return;
+    if (disabled || SkipThis()) return;
     Dreamland::ZygoteInit(env);
 }
 
 static inline void PostForkApp(JNIEnv* env, jint result) {
     if (result == 0) {
         bool allow_unload = true;
-        if (!disabled && (uid_ == -1 || !Dreamland::ShouldSkipUid(uid_))) {
+        if (!disabled) {
             if (UNLIKELY(starting_child_zygote))  {
                 // This is a child zygote, it not allowed to do binder transaction
                 LOGW("Skipping inject this process because it is child zygote");
-            } else {
+
+                // Temporarily disallow unload in child zygote because we have hooked ClassLinker::SetOnlyUseSystemOatFiles()
+                // On Android 10, child zygotes will call this function too, will crash because we are unmapped
+                allow_unload = false;
+            } else if (!SkipThis()) {
                 if (Dreamland::OnAppProcessStart(env)) allow_unload = false;
             }
         }
