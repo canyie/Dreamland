@@ -10,6 +10,7 @@
 extern "C" {
     bool register_Pine(JNIEnv* env, jclass Pine);
     bool register_Ruler(JNIEnv* env, jclass Ruler);
+    bool init_PineEnhances(JavaVM* jvm, JNIEnv* env, jclass cls);
     void PineSetAndroidVersion(int version);
     void* PineOpenElf(const char* elf);
     void PineCloseElf(void* handle);

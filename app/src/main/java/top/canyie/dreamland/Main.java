@@ -40,6 +40,7 @@ import mirror.android.os.ServiceManager;
 import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
 import top.canyie.pine.callback.MethodHook;
+import top.canyie.pine.enhances.PineEnhances;
 
 import static top.canyie.dreamland.core.Dreamland.TAG;
 
@@ -77,6 +78,8 @@ public final class Main {
 
         Pine.ensureInitialized();
         if (system) Pine.setJitCompilationAllowed(false);
+        PineEnhances.libLoader = () -> {};
+        PineEnhances.enableDelayHook();
 
         String realAbi = SystemProperties.get( "ro.product.cpu.abi", "");
         if (TextUtils.isEmpty(realAbi)) {

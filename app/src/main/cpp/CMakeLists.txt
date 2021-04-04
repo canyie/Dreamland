@@ -26,13 +26,18 @@ add_library(riru_dreamland
 find_library(log-lib log)
 
 add_library(pine STATIC IMPORTED)
+add_library(pine-enhances STATIC IMPORTED)
+add_library(dobby STATIC IMPORTED)
 
 get_filename_component(current_source_dir ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)
 
 set(external_dir "${current_source_dir}/../../../../external")
 get_filename_component(export_dir ${external_dir} ABSOLUTE)
-set_target_properties(pine PROPERTIES IMPORTED_LOCATION ${external_dir}/pine/${ANDROID_ABI}/libpine.a)
 
-target_link_libraries(riru_dreamland ${log-lib} pine)
+set_target_properties(pine PROPERTIES IMPORTED_LOCATION ${external_dir}/pine/${ANDROID_ABI}/libpine.a)
+set_target_properties(pine-enhances PROPERTIES IMPORTED_LOCATION ${external_dir}/pine-enhances/${ANDROID_ABI}/libpine-enhances.a)
+set_target_properties(dobby PROPERTIES IMPORTED_LOCATION ${external_dir}/dobby/${ANDROID_ABI}/libdobby.a)
+
+target_link_libraries(riru_dreamland ${log-lib} pine pine-enhances dobby)
 
 ENABLE_LANGUAGE(ASM)

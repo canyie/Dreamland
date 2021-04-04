@@ -143,22 +143,30 @@ bool Dreamland::ZygoteInit(JNIEnv* env) {
 
 bool Dreamland::RegisterNatives(JNIEnv* env, jclass main_class, jobject class_loader) {
     env->RegisterNatives(main_class, gMainNativeMethods, NELEM(gMainNativeMethods));
+    {
+        ScopedLocalRef<jclass> pine_class(env, JNIHelper::FindClassFromClassLoader(
+                env, "top.canyie.pine.Pine", class_loader));
+        if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
+            LOGE("Failed to load Pine class.");
+            return false;
+        }
+        ScopedLocalRef<jclass> ruler_class(env, JNIHelper::FindClassFromClassLoader(
+                env, "top.canyie.pine.Ruler", class_loader));
+        if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
+            LOGE("Failed to load Ruler class.");
+            return false;
+        }
+        if (UNLIKELY(!(register_Pine(env, pine_class.Get()) &&
+                       register_Ruler(env, ruler_class.Get())))) {
+            LOGE("Failed to register native methods.");
+            return false;
+        }
+    }
 
-    ScopedLocalRef<jclass> pine_class(env, JNIHelper::FindClassFromClassLoader(env,
-            "top.canyie.pine.Pine", class_loader));
-    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-        LOGE("Failed to load Pine class.");
-        return false;
-    }
-    ScopedLocalRef<jclass> ruler_class(env, JNIHelper::FindClassFromClassLoader(
-            env, "top.canyie.pine.Ruler", class_loader));
-    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-        LOGE("Failed to load Ruler class.");
-        return false;
-    }
-    if (UNLIKELY(!(register_Pine(env, pine_class.Get()) &&
-                   register_Ruler(env, ruler_class.Get())))) {
-        LOGE("Failed to register native methods.");
+    ScopedLocalRef<jclass> enhances_class(env, JNIHelper::FindClassFromClassLoader(
+            env, "top.canyie.pine.enhances.PineEnhances", class_loader));
+    if (UNLIKELY(!init_PineEnhances(java_vm, env, enhances_class.Get()))) {
+        LOGE("Failed to init PineEnhances.");
         return false;
     }
     return true;
@@ -167,7 +175,7 @@ bool Dreamland::RegisterNatives(JNIEnv* env, jclass main_class, jobject class_lo
 
 JNIEnv* Dreamland::GetJNIEnv() {
     JNIEnv* env = nullptr;
-    CHECK(java_vm->GetEnv(reinterpret_cast<void**> (&env), JNI_VERSION_1_6) == JNI_OK,
+    CHECK(java_vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK,
           "java_vm->GetEnv failed");
     CHECK(env != nullptr, "env == nullptr");
     return env;
