@@ -1,10 +1,10 @@
 SKIPUNZIP=1
 
 RIRU_OLD_PATH=/data/misc/riru
-RIRU_OLD_MODULE_PATH=$RIRU_OLD_PATH/modules/dreamland
 RIRU_NEW_PATH=/data/adb/riru
-RIRU_NEW_MODULE_PATH=$RIRU_NEW_PATH/modules/dreamland
+RIRU_MODULE_ID=dreamland
 DREAMLAND_PATH=/data/misc/dreamland
+RIRU_API=0
 
 ui_print "- Loading languages"
 unzip -o "$ZIPFILE" languages.sh -d "$TMPDIR" >&2
@@ -23,21 +23,36 @@ else
   ui_print "- $ALERT_ANDROID_API $API"
 fi
 
-if [ -f "$RIRU_OLD_PATH/api_version.new" ] || [ -f "$RIRU_OLD_PATH/api_version" ]; then
+MAGISK_TMP=$(magisk --path) || MAGISK_TMP="/sbin"
+MAGISK_CURRENT_RIRU_MODULE_PATH=$MAGISK_TMP/.magisk/modules/riru-core
+
+if [ -f $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh ]; then
+  # Riru V24+, api version is provided in util_functions.sh
+  # I don't like this, but I can only follow this change
+  RIRU_PATH=$MAGISK_CURRENT_RIRU_MODULE_PATH
+  ui_print "- Load $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh"
+  # shellcheck disable=SC1090
+  . $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh
+
+  # Pre Riru 25, as a old module
+  if [ "$RIRU_API" -lt 25 ]; then
+    ui_print "- Riru API version $RIRU_API is lower than v25"
+    RIRU_PATH=$RIRU_NEW_PATH
+  fi
+elif [ -f "$RIRU_OLD_PATH/api_version.new" ] || [ -f "$RIRU_OLD_PATH/api_version" ]; then
   RIRU_PATH="$RIRU_OLD_PATH"
-  RIRU_MODULE_PATH="$RIRU_OLD_MODULE_PATH"
 elif [ -f "$RIRU_NEW_PATH/api_version.new" ] || [ -f "$RIRU_NEW_PATH/api_version" ]; then
   RIRU_PATH="$RIRU_NEW_PATH"
-  RIRU_MODULE_PATH="$RIRU_NEW_MODULE_PATH"
 else
   abort "! $ERR_RIRU_NOT_INSTALLED"
 fi
+RIRU_MODULE_PATH="$RIRU_PATH/modules/$RIRU_MODULE_ID"
 
-RIRU_API_VERSION=$(cat "$RIRU_PATH/api_version.new") || RIRU_API_VERSION=$(cat "$RIRU_PATH/api_version") || RIRU_API_VERSION=0
-ui_print "- $ALERT_RIRU_API $RIRU_API_VERSION"
+[ "$RIRU_API" -ne 0 ] || RIRU_API=$(cat "$RIRU_PATH/api_version.new") || RIRU_API=$(cat "$RIRU_PATH/api_version")
+ui_print "- $ALERT_RIRU_API $RIRU_API"
 
 RIRU_MIN_API=$(grep_prop api "$TMPDIR/module.prop")
-[ "$RIRU_API_VERSION" -ge "$RIRU_MIN_API" ] || abort "! $ERR_UNSUPPORTED_RIRU_API $RIRU_API_VERSION"
+[ "$RIRU_API" -ge "$RIRU_MIN_API" ] || abort "! $ERR_UNSUPPORTED_RIRU_API $RIRU_API"
 
 if [ "${BOOTMODE}" = "true" ]; then
   if [ "$(pm path 'top.canyie.dreamland.manager')" = "" ]; then
@@ -54,16 +69,28 @@ fi
 
 ui_print "- $ALERT_EXTRACT_MODULE_FILES"
 unzip -o "$ZIPFILE" module.prop uninstall.sh post-fs-data.sh service.sh sepolicy.rule system.prop -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_MODULE_FILES $?"
-unzip -o "$ZIPFILE" 'system/*' -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_SYSTEM_FOLDER $?"
+unzip -o "$ZIPFILE" 'system/*' 'riru/*' -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_SYSTEM_FOLDER $?"
 
 if [ "$IS64BIT" = "false" ]; then
   ui_print "- $ALERT_REMOVE_LIB64"
-  rm -rf "$MODPATH/system/lib64"
+  rm -rf "$MODPATH/riru/lib64"
 fi
 
 ui_print "- $ALERT_EXTRACT_RIRU_FILES"
-[ -d "$RIRU_MODULE_PATH" ] || mkdir -p "$RIRU_MODULE_PATH" || abort "! $ERR_CREATE_RIRU_MODULE_PATH $?"
-cp -f "$TMPDIR/module.prop" "$RIRU_MODULE_PATH/module.prop" || abort "! $ERR_COPY_PROP_TO_RIRU_MODULE_PATH $?"
+if [ "$RIRU_API" -lt 25 ]; then
+  ui_print "- $ALERT_OLD_RIRU $RIRU_API"
+  mv -f "$MODPATH/riru/lib" "$MODPATH/system/"
+  [ -d "$MODPATH/riru/lib64" ] && mv -f "$MODPATH/riru/lib64" "$MODPATH/system/" 2>&1
+  rm -rf "$MODPATH/riru"
+  [ -d $RIRU_MODULE_PATH ] || mkdir -p $RIRU_MODULE_PATH || abort "! Can't create $RIRU_MODULE_PATH: $?"
+  cp -f "$MODPATH/module.prop" "$RIRU_MODULE_PATH/module.prop"
+else
+  # Riru v25+, maybe the user upgrade from old module without uninstall
+  # Remove the Riru v22's module path to make sure riru knews we're a new module
+  RIRU_22_MODULE_PATH="$RIRU_NEW_PATH/modules/$RIRU_MODULE_ID"
+  ui_print "- $ALERT_REMOVE_OLD_FOR_NEW_RIRU"
+  rm -rf "$RIRU_22_MODULE_PATH"
+fi
 
 ui_print "- $ALERT_PREPARE_LOCAL_DIR"
 [ -d "$DREAMLAND_PATH" ] || mkdir -p "$DREAMLAND_PATH" || abort "! $ERR_PREPARE_LOCAL_DIR $?"

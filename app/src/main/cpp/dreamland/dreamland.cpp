@@ -259,8 +259,12 @@ bool Dreamland::OnAppProcessStart(JNIEnv* env) {
             LOGE("Failed to call java callback method onAppProcessStart");
             return false;
         }
+        return true;
+    } else {
+        delete dex_data;
+        dex_data = nullptr;
     }
-    return true;
+    return false;
 }
 
 bool Dreamland::OnSystemServerStart(JNIEnv* env) {

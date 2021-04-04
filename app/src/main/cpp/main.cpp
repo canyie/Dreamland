@@ -20,14 +20,16 @@
 
 using namespace dreamland;
 
-extern "C" {
 int riru_api_version = 0;
-RiruApiV9* riru_api_v9;
-}
-
 bool disabled = false;
 bool starting_child_zygote = false;
 jint (*orig_JNI_CreateJavaVM)(JavaVM**, JNIEnv**, void*) = nullptr;
+int uid_ = -1;
+int* riru_allow_unload_= nullptr;
+
+void AllowUnload() {
+    if (riru_allow_unload_) *riru_allow_unload_ = 1;
+}
 
 jint hook_JNI_CreateJavaVM(JavaVM** p_vm, JNIEnv** p_env, void* vm_args) {
     Android::DisableOnlyUseSystemOatFiles();
@@ -44,7 +46,7 @@ jint hook_JNI_CreateJavaVM(JavaVM** p_vm, JNIEnv** p_env, void* vm_args) {
     return orig_JNI_CreateJavaVM(p_vm, p_env, vm_args);
 }
 
-EXPORT_C void onModuleLoaded() {
+EXPORT void onModuleLoaded() {
     LOGI("Welcome to Dreamland %s (%d)!", Dreamland::VERSION_NAME, Dreamland::VERSION);
     disabled = Dreamland::ShouldDisable();
     if (UNLIKELY(disabled)) {
@@ -78,7 +80,7 @@ EXPORT_C void onModuleLoaded() {
     Dreamland::Prepare();
 }
 
-EXPORT_C int shouldSkipUid(int uid) {
+EXPORT int shouldSkipUid(int uid) {
     return Dreamland::ShouldSkipUid(uid) ? 1 : 0;
 }
 
@@ -88,13 +90,17 @@ static inline void Prepare(JNIEnv* env) {
 }
 
 static inline void PostForkApp(JNIEnv* env, jint result) {
-    if (result == 0 && !disabled) {
-        if (UNLIKELY(starting_child_zygote))  {
-            // This is a child zygote, it not allowed to do binder transaction
-            LOGW("Skipping inject this process because it is child zygote");
-        } else {
-            Dreamland::OnAppProcessStart(env);
+    if (result == 0) {
+        bool allow_unload = true;
+        if (!disabled && (uid_ == -1 || !Dreamland::ShouldSkipUid(uid_))) {
+            if (UNLIKELY(starting_child_zygote))  {
+                // This is a child zygote, it not allowed to do binder transaction
+                LOGW("Skipping inject this process because it is child zygote");
+            } else {
+                if (Dreamland::OnAppProcessStart(env)) allow_unload = false;
+            }
         }
+        if (allow_unload) AllowUnload();
     }
 }
 
@@ -104,26 +110,26 @@ static inline void PostForkSystemServer(JNIEnv* env, jint result) {
     }
 }
 
-EXPORT_C void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint* gid_ptr,
-                                         jintArray*, jint*, jobjectArray*, jint*, jstring*,
-                                         jstring*, jintArray*, jintArray*,
-                                         jboolean* is_child_zygote, jstring*, jstring*, jboolean*,
-                                         jobjectArray*) {
+EXPORT void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint* gid_ptr,
+                                       jintArray*, jint*, jobjectArray*, jint*, jstring*,
+                                       jstring*, jintArray*, jintArray*,
+                                       jboolean* is_child_zygote, jstring*, jstring*, jboolean*,
+                                       jobjectArray*) {
     Prepare(env);
     starting_child_zygote = *is_child_zygote;
 }
 
-EXPORT_C int nativeForkAndSpecializePost(JNIEnv* env, jclass, jint result) {
+EXPORT int nativeForkAndSpecializePost(JNIEnv* env, jclass, jint result) {
     PostForkApp(env, result);
     return 0;
 }
 
-EXPORT_C void nativeForkSystemServerPre(JNIEnv* env, jclass, uid_t*, gid_t*,
-                                        jintArray*, jint*, jobjectArray*, jlong*, jlong*) {
+EXPORT void nativeForkSystemServerPre(JNIEnv* env, jclass, uid_t*, gid_t*,
+                                      jintArray*, jint*, jobjectArray*, jlong*, jlong*) {
     Prepare(env);
 }
 
-EXPORT_C int nativeForkSystemServerPost(JNIEnv* env, jclass, jint result) {
+EXPORT int nativeForkSystemServerPost(JNIEnv* env, jclass, jint result) {
     PostForkSystemServer(env, result);
     return 0;
 }
@@ -138,10 +144,12 @@ static void forkAndSpecializePre(
         jobjectArray *whitelistedDataInfoList, jboolean *bindMountAppDataDirs, jboolean *bindMountAppStorageDirs) {
     Prepare(env);
     starting_child_zygote = *is_child_zygote;
+    uid_ = *_uid;
 }
 
 static void forkAndSpecializePost(JNIEnv *env, jclass, jint res) {
     PostForkApp(env, res);
+    uid_ = -1;
 }
 
 static void specializeAppProcessPre(
@@ -152,10 +160,12 @@ static void specializeAppProcessPre(
         jboolean *bindMountAppDataDirs, jboolean *bindMountAppStorageDirs) {
     Prepare(env);
     starting_child_zygote = *startChildZygote;
+    uid_ = *_uid;
 }
 
 static void specializeAppProcessPost(JNIEnv *env, jclass) {
     PostForkApp(env, 0);
+    uid_ = -1;
 }
 
 static void forkSystemServerPre(
@@ -168,75 +178,47 @@ static void forkSystemServerPost(JNIEnv *env, jclass, jint res) {
     PostForkSystemServer(env, res);
 }
 
-/*
- * Init will be called three times.
- *
- * The first time:
- *   Returns the highest version number supported by both Riru and the module.
- *
- *   arg: (int *) Riru's API version
- *   returns: (int *) the highest possible API version
- *
- * The second time:
- *   Returns the RiruModuleX struct created by the module.
- *   (X is the return of the first call)
- *
- *   arg: (RiruApiVX *) RiruApi strcut, this pointer can be saved for further use
- *   returns: (RiruModuleX *) RiruModule strcut
- *
- * The second time:
- *   Let the module to cleanup (such as RiruModuleX struct created before).
- *
- *   arg: null
- *   returns: (ignored)
- *
- */
-EXPORT_C void* init(void* arg) {
-    static int step = 0;
-    step++;
+static auto module = RiruVersionedModuleInfo {
+        .moduleApiVersion = RIRU_NEW_MODULE_API_VERSION,
+        .moduleInfo = RiruModuleInfo {
+                .supportHide = true,
+                .version = Dreamland::VERSION,
+                .versionName = RIRU_MODULE_VERSION_NAME,
+                .onModuleLoaded = onModuleLoaded,
+                .shouldSkipUid = shouldSkipUid,
+                .forkAndSpecializePre = forkAndSpecializePre,
+                .forkAndSpecializePost = forkAndSpecializePost,
+                .forkSystemServerPre = forkSystemServerPre,
+                .forkSystemServerPost = forkSystemServerPost,
+                .specializeAppProcessPre = specializeAppProcessPre,
+                .specializeAppProcessPost = specializeAppProcessPost
+        }
+};
 
-    static void *_module;
+static int step = 0;
+EXPORT void* init(Riru* arg) {
+    step++;
 
     switch (step) {
         case 1: {
-            int core_max_api_version = *static_cast<int*>(arg);
+            int core_max_api_version = arg->riruApiVersion;
             riru_api_version = core_max_api_version <= RIRU_NEW_MODULE_API_VERSION ? core_max_api_version : RIRU_NEW_MODULE_API_VERSION;
-            return &riru_api_version;
-        }
-        case 2: {
-            switch (riru_api_version) {
-                // RiruApiV10 and RiruModuleInfoV10 are equal to V9
-                case 10:
-                case 9: {
-                    riru_api_v9 = (RiruApiV9 *) arg;
-
-                    auto module = (RiruModuleInfoV9 *) malloc(sizeof(RiruModuleInfoV9));
-                    memset(module, 0, sizeof(RiruModuleInfoV9));
-                    _module = module;
-
-                    module->supportHide = true;
-
-                    module->version = Dreamland::VERSION;
-                    module->versionName = RIRU_MODULE_VERSION_NAME;
-                    module->onModuleLoaded = onModuleLoaded;
-                    module->shouldSkipUid = shouldSkipUid;
-                    module->forkAndSpecializePre = forkAndSpecializePre;
-                    module->forkAndSpecializePost = forkAndSpecializePost;
-                    module->specializeAppProcessPre = specializeAppProcessPre;
-                    module->specializeAppProcessPost = specializeAppProcessPost;
-                    module->forkSystemServerPre = forkSystemServerPre;
-                    module->forkSystemServerPost = forkSystemServerPost;
-                    return module;
-                }
-                default: {
-                    return nullptr;
-                }
+            if (riru_api_version > 10 && riru_api_version < 25) {
+                // V24 is pre-release version, not supported
+                riru_api_version = 10;
+            }
+            if (riru_api_version >= 25) {
+                module.moduleApiVersion = riru_api_version;
+                riru_allow_unload_ = arg->allowUnload;
+                return &module;
+            } else {
+                return &riru_api_version;
             }
         }
-        case 3: {
-            free(_module);
-            return nullptr;
+        case 2: {
+            return &module.moduleInfo;
         }
+        case 3:
         default:
             return nullptr;
     }

@@ -18,6 +18,8 @@ if [ "$SIMPLIFIED_CHINESE" = "true" ]; then
   ALERT_REBOOT_TWICE_1="Magisk版本低于21006"
   ALERT_REBOOT_TWICE_2="您可能需要重启设备两次才能工作"
   ALERT_SETTING_PERMISSIONS="正在设置文件权限"
+  ALERT_OLD_RIRU="较旧的Riru API版本："
+  ALERT_REMOVE_OLD_FOR_NEW_RIRU="Riru v25+，正在移除旧的模块路径"
 
   ERR_UNSUPPORTED_ARCH="不支持的设备架构："
   ERR_UNSUPPORTED_ANDROID_API="不支持的Android API级别："
@@ -47,6 +49,8 @@ else
   ALERT_REBOOT_TWICE_1="Magisk version below 21006"
   ALERT_REBOOT_TWICE_2="You may need to manually reboot twice"
   ALERT_SETTING_PERMISSIONS="Setting permissions"
+  ALERT_OLD_RIRU="Old Riru API version: "
+  ALERT_REMOVE_OLD_FOR_NEW_RIRU="Removing old module path for Riru v25+"
 
   ERR_UNSUPPORTED_ARCH="Unsupported architecture:"
   ERR_UNSUPPORTED_ANDROID_API="Unsupported Android API level"
