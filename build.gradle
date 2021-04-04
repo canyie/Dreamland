@@ -5,6 +5,10 @@ buildscript {
         mavenLocal()
         google()
         jcenter()
+
+        maven {
+            url  "https://dl.bintray.com/canyie/pine"
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.5.2'
@@ -19,6 +23,10 @@ allprojects {
         mavenLocal()
         google()
         jcenter()
+
+        maven {
+            url  "https://dl.bintray.com/canyie/pine"
+        }
     }
 }
 
