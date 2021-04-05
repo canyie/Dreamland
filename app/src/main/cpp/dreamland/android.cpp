@@ -22,17 +22,3 @@ void Android::Initialize() {
     __system_property_get("ro.build.version.sdk", android_level_str);
     Android::version = atoi(android_level_str);
 }
-
-void DoNothing() {
-}
-
-void Android::DisableOnlyUseSystemOatFiles() {
-    if (version >= kP) {
-        const char* symbol = version == kQ
-                ? "_ZN3art14OatFileManager24SetOnlyUseSystemOatFilesEbb" // Q: (OatFileManager*, bool, bool)
-                : "_ZN3art14OatFileManager24SetOnlyUseSystemOatFilesEv"; // P & R: (OatFileManager*)
-
-        bool disabled = PineNativeInlineHookSymbolNoBackup("libart.so", symbol, (void*) DoNothing);
-        if (UNLIKELY(!disabled)) LOGE("Failed to disable only use system oat files by hook %s", symbol);
-    }
-}

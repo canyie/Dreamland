@@ -13,7 +13,6 @@ namespace dreamland {
     public:
         static int version;
         static void Initialize();
-        static void DisableOnlyUseSystemOatFiles();
         static constexpr int kN = 24;
         static constexpr int kO = 26;
         static constexpr int kP = 28;

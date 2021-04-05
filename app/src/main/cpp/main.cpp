@@ -14,7 +14,6 @@
 #include "utils/well_known_classes.h"
 #include "utils/selinux.h"
 #include "utils/selinux_helper.h"
-#include "external/xhook/xhook.h"
 #include "dreamland/android.h"
 #include "utils/scoped_local_ref.h"
 
@@ -23,27 +22,11 @@ using namespace dreamland;
 int riru_api_version = 0;
 bool disabled = false;
 bool starting_child_zygote = false;
-jint (*orig_JNI_CreateJavaVM)(JavaVM**, JNIEnv**, void*) = nullptr;
 int uid_ = -1;
 int* riru_allow_unload_ = nullptr;
 
 void AllowUnload() {
     if (riru_allow_unload_) *riru_allow_unload_ = 1;
-}
-
-jint hook_JNI_CreateJavaVM(JavaVM** p_vm, JNIEnv** p_env, void* vm_args) {
-    Android::DisableOnlyUseSystemOatFiles();
-    bool success = xhook_register(".*\\libandroid_runtime.so$", "JNI_CreateJavaVM",
-                                  reinterpret_cast<void*>(orig_JNI_CreateJavaVM),
-                                  nullptr) == 0 && xhook_refresh(0) == 0;
-    if (LIKELY(success)) {
-        xhook_clear();
-    } else {
-        LOGE("Failed to clear hook.");
-    }
-    // After JNI_CreateJavaVM returns, we already have a valid JNIEnv and can call some Java APIs
-    // But many important APIs are not yet ready (such as JNI function is not registered).
-    return orig_JNI_CreateJavaVM(p_vm, p_env, vm_args);
 }
 
 EXPORT void onModuleLoaded() {
@@ -57,26 +40,6 @@ EXPORT void onModuleLoaded() {
     int api_level = Android::version;
     LOGI("Android Api Level %d", api_level);
     PineSetAndroidVersion(api_level);
-
-    if (riru_api_version >= 9) {
-        // After Riru API V9, we're loaded after libart.so be loaded
-        Android::DisableOnlyUseSystemOatFiles();
-    } else {
-        // Before Riru API V9
-        // At this time, libart.so has not been loaded yet (it will be dlopen-ed in JniInvocation::Init)
-        xhook_enable_debug(1);
-        xhook_enable_sigsegv_protection(0);
-        bool success = xhook_register(".*\\libandroid_runtime.so$", "JNI_CreateJavaVM",
-                                      reinterpret_cast<void*> (hook_JNI_CreateJavaVM),
-                                      reinterpret_cast<void**> (&orig_JNI_CreateJavaVM)) == 0
-                       && xhook_refresh(0) == 0;
-
-        if (LIKELY(success)) {
-            xhook_clear();
-        } else {
-            LOGE("Failed to hook JNI_CreateJavaVM");
-        }
-    }
     Dreamland::Prepare();
 }
 
@@ -98,12 +61,8 @@ static inline void PostForkApp(JNIEnv* env, jint result) {
         bool allow_unload = true;
         if (!disabled) {
             if (UNLIKELY(starting_child_zygote))  {
-                // This is a child zygote, it not allowed to do binder transaction
+                // child zygote not allowed to do binder transaction
                 LOGW("Skipping inject this process because it is child zygote");
-
-                // Temporarily disallow unload in child zygote because we have hooked ClassLinker::SetOnlyUseSystemOatFiles()
-                // On Android 10, child zygotes will call this function too, will crash because we are unmapped
-                allow_unload = false;
             } else if (!SkipThis()) {
                 if (Dreamland::OnAppProcessStart(env)) allow_unload = false;
             }

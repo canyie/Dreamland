@@ -13,14 +13,6 @@ add_library(riru_dreamland
         dreamland/resources_hook.cpp
         dreamland/binder.cpp
         dreamland/dex_loader.cpp
-
-        # XHook
-        external/xhook/xhook.c
-        external/xhook/xh_core.c
-        external/xhook/xh_elf.c
-        external/xhook/xh_log.c
-        external/xhook/xh_util.c
-        external/xhook/xh_version.c
         )
 
 find_library(log-lib log)
