@@ -196,6 +196,8 @@ public final class Main {
                         }
                     }));
 
+            // We want to know if sepolicy patch rules is loaded properly,
+            // so we hook the method even if no modules need to hook system server.
             try {
                 // Call chain:
                 //  SystemServer.run()
@@ -231,6 +233,7 @@ public final class Main {
                 });
             } catch (Throwable e) {
                 Log.e(TAG, "Cannot hook methods in system_server. Maybe the SEPolicy patch rules not loaded properly by Magisk.", e);
+                dms.setCannotHookSystemServer();
             }
         } catch (Throwable e) {
             try {

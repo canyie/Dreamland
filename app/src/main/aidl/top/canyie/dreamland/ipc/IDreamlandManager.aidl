@@ -18,4 +18,5 @@ interface IDreamlandManager {
     void setGlobalModeEnabled(boolean enabled) = 13;
     String[] getEnabledAppsFor(String module) = 14;
     void setEnabledAppsFor(String module, in String[] apps) = 15;
+    boolean cannotHookSystemServer() = 16;
 }

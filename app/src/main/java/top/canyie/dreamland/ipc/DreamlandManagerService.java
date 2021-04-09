@@ -65,6 +65,8 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     };
 
+    private boolean cannotHookSystemServer;
+
     private DreamlandManagerService() {
         instance = this;
         mModuleManager = new ModuleManager();
@@ -102,6 +104,10 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
             apkPath = appInfo.sourceDir;
         }
         return apkPath;
+    }
+
+    public void setCannotHookSystemServer() {
+        cannotHookSystemServer = true;
     }
 
     @Override public int getVersion() {
@@ -269,6 +275,11 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
             mModuleManager.setEnabledFor(module, apps);
             mEnabledModuleCache.evictAll();
         }
+    }
+
+    @Override public boolean cannotHookSystemServer() throws RemoteException {
+        enforceManager("cannotHookSystemServer");
+        return cannotHookSystemServer;
     }
 
     private String[] getPackagesForCallingUid() {
