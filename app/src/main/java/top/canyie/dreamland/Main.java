@@ -161,45 +161,14 @@ public final class Main {
 
             Dreamland.isSystem = true;
 
-            // Call chain:
-            //  SystemServer.run()
-            //    -> SystemServer.createSystemContext()
-            //      -> ActivityThread.systemMain()
-            //        -> ActivityThread.attach(true, 0)
-            //          -> ActivityThread.getSystemContext()
-            //            -> if (mSystemContext == null)
-            //            -> mSystemContext = ContextImpl.createSystemContext()
-            //            -> return mSystemContext
-            //    -> SystemServer.startBootstrapServices()
-
-            Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
-                    String[] modules = dms.getEnabledModulesForSystemServer();
-                    if (modules != null && modules.length != 0) {
-                        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                        Dreamland.packageName = AppConstants.ANDROID;
-                        Dreamland.processName = AppConstants.ANDROID; // it's actually system_server, but other functions return this as well
-                        Dreamland.appInfo = null;
-                        Dreamland.classLoader = cl;
-                        assert cl != null;
-                        Pine.hook(cl.loadClass("com.android.server.SystemServer")
-                                        .getDeclaredMethod("startBootstrapServices"),
-                                new MethodHook() {
-                                    @Override public void beforeCall(Pine.CallFrame callFrame) {
-                                        Dreamland.loadXposedModules(modules, true);
-                                        Dreamland.callLoadPackage();
-                                    }
-                                });
-                    }
-                }
-            });
-
+            // Replace ServiceManager so we can know services are ready and replace them
             Object base = ServiceManager.getIServiceManager.callStatic();
             ServiceManager.sServiceManager.setStaticValue(Reflection.on("android.os.IServiceManager")
                     .proxy((proxy, method, args) -> {
                         if ("addService".equals(method.getName())) {
                             Object serviceName = args[0];
                             if (TARGET_BINDER_SERVICE_NAME.equals(serviceName)) {
+                                // Replace the clipboard service so apps can acquire binder
                                 Log.i(TAG, "Replacing clipboard service");
                                 args[1] = new BinderServiceProxy((Binder) args[1],
                                         TARGET_BINDER_SERVICE_DESCRIPTOR, dms, dms::isEnabledFor);
@@ -226,6 +195,43 @@ public final class Main {
                             throw e.getTargetException();
                         }
                     }));
+
+            try {
+                // Call chain:
+                //  SystemServer.run()
+                //    -> SystemServer.createSystemContext()
+                //      -> ActivityThread.systemMain()
+                //        -> ActivityThread.attach(true, 0)
+                //          -> ActivityThread.getSystemContext()
+                //            -> if (mSystemContext == null)
+                //            -> mSystemContext = ContextImpl.createSystemContext()
+                //            -> return mSystemContext
+                //    -> SystemServer.startBootstrapServices()
+
+                Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
+                    @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
+                        String[] modules = dms.getEnabledModulesForSystemServer();
+                        if (modules != null && modules.length != 0) {
+                            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                            Dreamland.packageName = AppConstants.ANDROID;
+                            Dreamland.processName = AppConstants.ANDROID; // it's actually system_server, but other functions return this as well
+                            Dreamland.appInfo = null;
+                            Dreamland.classLoader = cl;
+                            assert cl != null;
+                            Pine.hook(cl.loadClass("com.android.server.SystemServer")
+                                            .getDeclaredMethod("startBootstrapServices"),
+                                    new MethodHook() {
+                                        @Override public void beforeCall(Pine.CallFrame callFrame) {
+                                            Dreamland.loadXposedModules(modules, true);
+                                            Dreamland.callLoadPackage();
+                                        }
+                                    });
+                        }
+                    }
+                });
+            } catch (Throwable e) {
+                Log.e(TAG, "Cannot hook methods in system_server. Maybe the SEPolicy patch rules not loaded properly by Magisk.", e);
+            }
         } catch (Throwable e) {
             try {
                 Log.e(TAG, "Dreamland error in system server", e);
