@@ -44,7 +44,7 @@ EXPORT void onModuleLoaded() {
 }
 
 bool SkipThis() {
-    return uid_ != -1 && Dreamland::ShouldSkipUid(uid_);
+    return disabled || (uid_ != -1 && Dreamland::ShouldSkipUid(uid_));
 }
 
 EXPORT int shouldSkipUid(int uid) {
@@ -59,12 +59,12 @@ static inline void Prepare(JNIEnv* env) {
 static inline void PostForkApp(JNIEnv* env, jint result) {
     if (result == 0) {
         bool allow_unload = true;
-        if (!disabled) {
+        if (!SkipThis()) {
             if (UNLIKELY(starting_child_zygote))  {
                 // child zygote not allowed to do binder transaction
                 LOGW("Skipping inject this process because it is child zygote");
-            } else if (!SkipThis()) {
-                if (Dreamland::OnAppProcessStart(env)) allow_unload = false;
+            } else if (Dreamland::OnAppProcessStart(env)) {
+                allow_unload = false;
             }
         }
         if (allow_unload) AllowUnload();
