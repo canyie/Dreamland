@@ -91,7 +91,7 @@ def moduleProp = [
         id: 'riru_dreamland',
         name: 'Riru-Dreamland',
         author: 'canyie',
-        version: rootProject.ext.versionName,
+        version: rootProject.ext.versionName + "_" + rootProject.ext.versionCode,
         versionCode: rootProject.ext.versionCode,
         description: 'A third-party Xposed framework implementation, supports Android 7.0 ~ 11. Requires module \'Riru\' is installed. Telegram group: @DreamlandFramework, QQ group: 949888394.',
         minMagisk: rootProject.ext.minMagiskVersion,
