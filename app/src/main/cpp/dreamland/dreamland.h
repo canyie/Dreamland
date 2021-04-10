@@ -16,7 +16,7 @@ namespace dreamland {
     public:
         // TODO: Get these versions from gradle
         static constexpr const char* VERSION_NAME = "2.0";
-        static constexpr int VERSION = 2001;
+        static constexpr int VERSION = 2002;
 
         static bool ShouldDisable();
 

@@ -30,4 +30,3 @@
 -keepattributes EnclosingMethod
 
 -keep class sun.misc.Unsafe { *; }
--keep class com.canyie.dreamland.hookers.** { *; }
