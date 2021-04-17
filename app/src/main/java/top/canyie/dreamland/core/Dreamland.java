@@ -27,7 +27,10 @@ import top.canyie.dreamland.ipc.IDreamlandManager;
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import top.canyie.dreamland.utils.reflect.Reflection;
 import top.canyie.dreamland.utils.reflect.UncheckedNoSuchMethodException;
@@ -49,43 +52,42 @@ public final class Dreamland {
     public static final File BASE_DIR = new File("/data/misc/dreamland/");
     private static final String XRESOURCES_CONFLICTING_PACKAGE = "com.sygic.aura";
 
-    public static String processName = "";
-    public static String packageName = "";
-    public static ApplicationInfo appInfo;
+    public static Set<String> loadedPackages = Collections.synchronizedSet(new HashSet<>(1, 1));
+    public static Set<String> loadedModules = new HashSet<>();
+
     public static boolean isSystem;
-    public static ClassLoader classLoader;
     public static boolean disableResourcesHook;
-    private static boolean hooked;
+    private static boolean triedInitResHook;
     private static final CopyOnWriteSortedSet<XC_InitPackageResources> sInitPackageResourcesCallbacks = new CopyOnWriteSortedSet<>();
 
-    public static void ready(IDreamlandManager manager, boolean mainZygote) {
-        if (canLoadXposedModules()) {
-            hooked = true;
-            if (MANAGER_PACKAGE_NAME.equals(packageName)) {
-                Log.i(TAG, "This app is dreamland manager.");
+    public static void packageReady(IDreamlandManager manager, String packageName, String processName,
+                                    ApplicationInfo appInfo, ClassLoader classLoader,
+                                    boolean isFirstApp, boolean mainZygote) {
+        if (MANAGER_PACKAGE_NAME.equals(packageName)) {
+            Log.i(TAG, "This app is dreamland manager.");
 
+            try {
+                Reflection<?> ref = Reflection.on("top.canyie.dreamland.manager.core.Dreamland", classLoader);
+                IBinder binder = manager.asBinder();
                 try {
-                    Reflection<?> ref = Reflection.on("top.canyie.dreamland.manager.core.Dreamland", classLoader);
-                    IBinder binder = manager.asBinder();
-                    try {
-                        ref.method("init", String.class, int.class, IBinder.class)
-                                .callStatic(VERSION_NAME, VERSION, binder);
-                    } catch (UncheckedNoSuchMethodException ignored) {
-                        // Try beta version
-                        ref.method("init", int.class, IBinder.class)
-                                .callStatic(VERSION, binder);
-                    }
-                } catch (Throwable e) {
-                    // should never happen
-                    Log.e(TAG, "Failed to init manager", e);
+                    ref.method("init", String.class, int.class, IBinder.class)
+                            .callStatic(VERSION_NAME, VERSION, binder);
+                } catch (UncheckedNoSuchMethodException ignored) {
+                    // Try beta version
+                    ref.method("init", int.class, IBinder.class)
+                            .callStatic(VERSION, binder);
                 }
-                return; // Don't load xposed modules in manager process.
-            } else if (OLD_MANAGER_PACKAGE_NAME.equals(packageName)) {
-                Log.w(TAG, "Detected old dreamland manager");
-                try {
-                    Class<?> mainActivityClass = classLoader.loadClass("com.canyie.dreamland.manager.ui.activities.MainActivity");
-                    XposedHelpers.findAndHookMethod(
-                            Activity.class, "onCreate", Bundle.class, new XC_MethodHook() {
+            } catch (Throwable e) {
+                // should never happen
+                Log.e(TAG, "Failed to init manager", e);
+            }
+            return; // Don't load xposed modules in manager process.
+        } else if (OLD_MANAGER_PACKAGE_NAME.equals(packageName)) {
+            Log.w(TAG, "Detected old dreamland manager");
+            try {
+                Class<?> mainActivityClass = classLoader.loadClass("com.canyie.dreamland.manager.ui.activities.MainActivity");
+                XposedHelpers.findAndHookMethod(Activity.class, "onCreate", Bundle.class,
+                        new XC_MethodHook() {
                                 @Override protected void afterHookedMethod(MethodHookParam param) {
                                     if (param.thisObject.getClass() != mainActivityClass) return;
                                     String msg = "The Dreamland manager is obsolete " +
@@ -94,60 +96,61 @@ public final class Dreamland {
                                     Toast.makeText((Context) param.thisObject, msg, Toast.LENGTH_SHORT).show();
                                 }
                             });
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to hook old dreamland manager", e);
-                }
-                return;
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to hook old dreamland manager", e);
             }
-
-            String[] modules;
-            try {
-                modules = manager.getEnabledModulesFor(packageName);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failure from remote dreamland service", e);
-                return;
-            }
-
-            if (modules == null || modules.length == 0) {
-                Log.i(TAG, "No module needs to hook into this process, skip.");
-                return;
-            }
-
-            try {
-                startResourcesHook(manager);
-            } catch (Throwable e) {
-                Log.e(TAG, "Start resources hook failed", e);
-                Dreamland.disableResourcesHook = true;
-            }
-
-            Log.i(TAG, "Loading xposed-style modules for package " + packageName + " process " + processName);
-            loadXposedModules(modules, mainZygote);
-            callLoadPackage();
+            return;
         }
+
+        String[] modules;
+        try {
+            modules = manager.getEnabledModulesFor(packageName);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failure from remote dreamland service", e);
+            return;
+        }
+
+        if (modules == null || modules.length == 0) {
+            Log.i(TAG, "No module needs to hook into this package, skip.");
+            return;
+        }
+        prepareModulesFor(manager, packageName, processName, modules, mainZygote);
+        PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
     }
 
-    public static void callLoadPackage() {
-        PineXposed.onPackageLoad(packageName, processName, appInfo, true, classLoader);
-    }
+    public static void prepareModulesFor(IDreamlandManager dm, String packageName, String processName,
+                                         String[] modules, boolean mainZygote) {
+        try {
+            startResourcesHook(dm);
+        } catch (Throwable e) {
+            Log.e(TAG, "Start resources hook failed", e);
+            Dreamland.disableResourcesHook = true;
+        }
 
-    private static boolean canLoadXposedModules() {
-        return classLoader != null && !hooked;
+        Log.i(TAG, "Loading xposed modules for package " + packageName + " process " + processName);
+        loadXposedModules(modules, mainZygote);
     }
 
     public static void loadXposedModules(String[] modules, boolean mainZygote) {
-        for (String module : modules) {
-            if (TextUtils.isEmpty(module)) {
-                Log.e(TAG, "Module list contains empty, skipping");
-                Log.e(TAG, "Module list: " + Arrays.toString(modules));
-                continue;
+        synchronized (loadedModules) {
+            for (String module : modules) {
+                if (TextUtils.isEmpty(module)) {
+                    Log.e(TAG, "Module list contains empty, skipping");
+                    Log.e(TAG, "Module list: " + Arrays.toString(modules));
+                    continue;
+                }
+                if (!loadedModules.add(module)) continue;
+                Log.i(TAG, "Loading xposed module " + module);
+                // Only main zygote (non-secondary zygote) will starts the system server
+                PineXposed.loadModule(new File(module), mainZygote);
             }
-            Log.i(TAG, "Loading xposed module " + module);
-            // Only main zygote (non-secondary zygote) will starts the system server
-            PineXposed.loadModule(new File(module), mainZygote);
         }
     }
 
     public static void startResourcesHook(IDreamlandManager manager) throws Exception {
+        if (triedInitResHook) return;
+        triedInitResHook = true;
+
         disableResourcesHook = disableResourcesHook || !manager.isResourcesHookEnabled();
 
         PineXposed.setExtHandler(callback -> {

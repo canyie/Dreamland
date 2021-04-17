@@ -1,6 +1,7 @@
 package top.canyie.dreamland;
 
 import android.annotation.SuppressLint;
+import android.app.AndroidAppHelper;
 import android.app.LoadedApk;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -21,6 +22,7 @@ import dalvik.system.InMemoryDexClassLoader;
 import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.DexCreator;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.core.PackageMonitor;
 import top.canyie.dreamland.ipc.BinderServiceProxy;
@@ -41,6 +43,7 @@ import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
 import top.canyie.pine.callback.MethodHook;
 import top.canyie.pine.enhances.PineEnhances;
+import top.canyie.pine.xposed.PineXposed;
 
 import static top.canyie.dreamland.core.Dreamland.TAG;
 
@@ -54,7 +57,7 @@ public final class Main {
     private static boolean classLoaderReady;
     private static boolean clipboardServiceReplaced, packageManagerReady, activityManagerReady;
     //private static int sWebViewZygoteUid = -1;
-    private static boolean mainZygote;
+    public static boolean mainZygote;
     private static boolean inited;
 
     private static void commonInit(boolean system) {
@@ -108,7 +111,7 @@ public final class Main {
     private static void initXResources(ClassLoader myCL) throws Exception {
         Resources res = Resources.getSystem();
 
-        Class resClass = res.getClass();
+        Class<? extends Resources> resClass = res.getClass();
         Class<?> taClass = TypedArray.class;
         try {
             TypedArray ta = res.obtainTypedArray(res.getIdentifier("preloaded_drawables", "array", "android"));
@@ -152,9 +155,55 @@ public final class Main {
         return dexFile.getAbsolutePath();
     }
 
+    private static void hookPackageLoad(IDreamlandManager dm) throws Exception {
+        Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("handleBindApplication",
+                ActivityThread.AppBindData.REF.unwrap()),
+                new MethodHook() {
+                    @Override public void beforeCall(Pine.CallFrame callFrame) {
+                        android.app.ActivityThread activityThread = (android.app.ActivityThread) callFrame.thisObject;
+                        Object appBindData = callFrame.args[0];
+                        ApplicationInfo appInfo = ActivityThread.AppBindData.appInfo.getValue(appBindData);
+                        if (appInfo == null) return;
+                        CompatibilityInfo compatInfo = ActivityThread.AppBindData.compatInfo.getValue(appBindData);
+                        ActivityThread.mBoundApplication.setValue(activityThread, appBindData);
+                        LoadedApk loadedApk = activityThread.getPackageInfoNoCheck(appInfo, compatInfo);
+                        XResources.setPackageNameForResDir(appInfo.packageName, loadedApk.getResDir());
+
+                        String packageName = appInfo.packageName.equals("android") ? "system" : appInfo.packageName;
+                        String processName = ActivityThread.AppBindData.processName.getValue(appBindData);
+                        ClassLoader classLoader = loadedApk.getClassLoader();
+                        Dreamland.packageReady(dm, packageName, processName, appInfo, classLoader, true, mainZygote);
+                    }
+                });
+
+        // when a package is loaded for an existing process, trigger the callbacks as well
+        Pine.hook(LoadedApk.class.getDeclaredConstructor(android.app.ActivityThread.class,
+                ApplicationInfo.class, CompatibilityInfo.class, ClassLoader.class,
+                boolean.class, boolean.class, boolean.class), new MethodHook() {
+            @Override public void afterCall(Pine.CallFrame callFrame) {
+                LoadedApk loadedApk = (LoadedApk) callFrame.thisObject;
+                if (!XposedHelpers.getBooleanField(loadedApk, "mIncludeCode")) return;
+                String packageName = loadedApk.getPackageName();
+                XResources.setPackageNameForResDir(packageName, loadedApk.getResDir());
+                if (AppConstants.ANDROID.equals(packageName)) return;
+                if (!Dreamland.loadedPackages.add(packageName)) return; // Already hooked
+
+                // OnePlus magic...
+                if (Log.getStackTraceString(new Throwable()).
+                        contains("android.app.ActivityThread$ApplicationThread.schedulePreload")) {
+                    Log.d(TAG, "LoadedApk#<init> maybe oneplus's custom opt, skip");
+                    return;
+                }
+
+                GetClassLoaderHook.install(dm, loadedApk, packageName, AndroidAppHelper.currentProcessName(), loadedApk.getApplicationInfo(), false);
+            }
+        });
+    }
+
     public static void onSystemServerStart() {
         try {
             if (!inited) commonInit(true);
+            Log.i(TAG, "System server is started!");
 
             // Start loading the properties asynchronously first to minimize time-consuming.
             DreamlandManagerService dms = DreamlandManagerService.start();
@@ -212,25 +261,26 @@ public final class Main {
 
                 Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
                     @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
+                        Dreamland.loadedPackages.add(AppConstants.ANDROID);
                         String[] modules = dms.getEnabledModulesForSystemServer();
                         if (modules != null && modules.length != 0) {
                             ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                            Dreamland.packageName = AppConstants.ANDROID;
-                            Dreamland.processName = AppConstants.ANDROID; // it's actually system_server, but other functions return this as well
-                            Dreamland.appInfo = null;
-                            Dreamland.classLoader = cl;
-                            assert cl != null;
+                            final String packageName = AppConstants.ANDROID;
+                            final String processName = AppConstants.ANDROID; // it's actually system_server, but other functions return this as well
+
+                            Dreamland.prepareModulesFor(dms, packageName, processName, modules, true);
                             Pine.hook(cl.loadClass("com.android.server.SystemServer")
                                             .getDeclaredMethod("startBootstrapServices"),
                                     new MethodHook() {
                                         @Override public void beforeCall(Pine.CallFrame callFrame) {
-                                            Dreamland.loadXposedModules(modules, true);
-                                            Dreamland.callLoadPackage();
+                                            PineXposed.onPackageLoad(packageName, processName, null, true, cl);
                                         }
                                     });
                         }
                     }
                 });
+
+                hookPackageLoad(dms);
             } catch (Throwable e) {
                 Log.e(TAG, "Cannot hook methods in system_server. Maybe the SEPolicy patch rules not loaded properly by Magisk.", e);
                 dms.setCannotHookSystemServer();
@@ -287,51 +337,7 @@ public final class Main {
             }
 
             IDreamlandManager dm = IDreamlandManager.Stub.asInterface(service);
-
-            Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("handleBindApplication",
-                    ActivityThread.AppBindData.REF.unwrap()),
-                    new MethodHook() {
-                        @Override public void beforeCall(Pine.CallFrame callFrame) {
-                            android.app.ActivityThread activityThread = (android.app.ActivityThread) callFrame.thisObject;
-                            Object appBindData = callFrame.args[0];
-                            ApplicationInfo appInfo = ActivityThread.AppBindData.appInfo.getValue(appBindData);
-                            CompatibilityInfo compatInfo = ActivityThread.AppBindData.compatInfo.getValue(appBindData);
-                            ActivityThread.mBoundApplication.setValue(activityThread, appBindData);
-                            LoadedApk loadedApk = activityThread.getPackageInfoNoCheck(appInfo, compatInfo);
-                            XResources.setPackageNameForResDir(appInfo.packageName, loadedApk.getResDir());
-
-                            try {
-                                Dreamland.appInfo = appInfo;
-                                Dreamland.packageName = appInfo.packageName.equals("android") ? "system" : appInfo.packageName;
-                                Dreamland.processName = ActivityThread.AppBindData.processName.getValue(appBindData);
-                                Dreamland.classLoader = loadedApk.getClassLoader();
-                                Dreamland.ready(dm, mainZygote);
-                            } catch (Exception e) {
-                                Log.e(TAG, "Install hooks failed", e);
-                            }
-                        }
-                    });
-
-            /*Pine.hook(LoadedApk.class.getDeclaredMethod("getClassLoader"),
-                    new MethodHook() {
-                        @Override public void afterCall(Pine.CallFrame callFrame) {
-                            ClassLoader classLoader = (ClassLoader) callFrame.getResult();
-                            if (classLoader == null) {
-                                Log.w(TAG, "LoadedApk.getClassLoader() return null, ignore.");
-                                return;
-                            }
-                            if (!classLoaderReady) {
-                                classLoaderReady = true;
-                                Dreamland.classLoader = classLoader;
-
-                                try {
-                                    Dreamland.ready(dm);
-                                } catch (Exception e) {
-                                    Log.e(TAG, "Install hooks failed", e);
-                                }
-                            }
-                        }
-                    });*/
+            hookPackageLoad(dm);
         } catch (Throwable e) {
             try {
                 Log.e(TAG, "Dreamland error in app process", e);

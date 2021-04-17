@@ -164,7 +164,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mEnabledAppCache = null;
     }
 
-    @Override public String[] getEnabledModulesFor(String packageName) throws RemoteException {
+    @Override public String[] getEnabledModulesFor(String packageName) {
         if (mSafeModeEnabled) return null;
 
         if (Dreamland.MANAGER_PACKAGE_NAME.equals(packageName)
