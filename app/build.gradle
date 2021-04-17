@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
+    ndkVersion rootProject.ext.ndkVersion
     defaultConfig {
         applicationId "top.canyie.dreamland"
         minSdkVersion rootProject.ext.minSdkVersion

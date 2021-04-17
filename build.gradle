@@ -31,10 +31,11 @@ allprojects {
 }
 
 ext {
-    compileSdkVersion = 28
-    buildToolsVersion = '28.0.3'
+    compileSdkVersion = 30
+    buildToolsVersion = '30.0.2'
+    ndkVersion = "21.3.6528147"
     minSdkVersion = 24
-    targetSdkVersion = 29 // useless for magisk module
+    targetSdkVersion = 30 // useless for magisk module
     versionCode = 2002
     versionName = '2.0'
     minMagiskVersion = 19000

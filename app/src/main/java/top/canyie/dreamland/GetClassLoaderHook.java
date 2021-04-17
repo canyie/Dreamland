@@ -48,7 +48,6 @@ class GetClassLoaderHook extends MethodHook {
 
     @Override public void afterCall(Pine.CallFrame callFrame) {
         LoadedApk loadedApk = (LoadedApk) callFrame.thisObject;
-        Log.i(Dreamland.TAG, "getClassLoader: " + loadedApk.getPackageName());
         if (loadedApk != this.loadedApk) return;
 
         try {

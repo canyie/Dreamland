@@ -1,3 +1,2 @@
-include ':app'
+include ':app', ':hiddenapi-stubs'
 rootProject.name='Dreamland'
-include ':hiddenapi-stubs'
