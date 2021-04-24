@@ -181,6 +181,7 @@ public final class Main {
                 ApplicationInfo.class, CompatibilityInfo.class, ClassLoader.class,
                 boolean.class, boolean.class, boolean.class), new MethodHook() {
             @Override public void afterCall(Pine.CallFrame callFrame) {
+                if (Dreamland.loadedPackages.isEmpty()) return; // First app should call handleBindApplication
                 LoadedApk loadedApk = (LoadedApk) callFrame.thisObject;
                 if (!XposedHelpers.getBooleanField(loadedApk, "mIncludeCode")) return;
                 String packageName = loadedApk.getPackageName();
