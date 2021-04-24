@@ -43,7 +43,6 @@ class GetClassLoaderHook extends MethodHook {
         } catch (Throwable e) {
             Log.e(Dreamland.TAG, "hook getClassLoader failed", e);
         }
-        Log.i(Dreamland.TAG, "Installed hook for " + packageName);
     }
 
     @Override public void afterCall(Pine.CallFrame callFrame) {
