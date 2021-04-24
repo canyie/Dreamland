@@ -3,7 +3,10 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
-    ndkVersion rootProject.ext.ndkVersion
+
+    // ndk version is required on my computer but not required on CI
+    // ndkVersion rootProject.ext.ndkVersion
+
     defaultConfig {
         applicationId "top.canyie.dreamland"
         minSdkVersion rootProject.ext.minSdkVersion
