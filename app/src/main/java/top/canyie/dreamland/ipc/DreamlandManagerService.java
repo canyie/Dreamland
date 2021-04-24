@@ -29,6 +29,9 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private static final String SAFE_MODE_FILENAME = "safemode";
     private static final String GLOBAL_MODE_FILENAME = "global_mode";
     private static final String ENABLE_RESOURCES_FILENAME = "enable_resources";
+
+    /** Skip other packages in system server */
+    private static final String SKIP_SYSTEM_SERVER = "skip_system_server";
     private static final int ROOT_UID = 0;
     private static final int SYSTEM_UID = Process.SYSTEM_UID;
     private static final int SHELL_UID = 2000;
@@ -38,6 +41,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private boolean mSafeModeEnabled;
     private boolean mGlobalModeEnabled;
     private boolean mResourcesHookEnabled;
+    private boolean mSkipSystemServer;
 
     private IPackageManager pm;
     private final AppManager mAppManager;
@@ -73,9 +77,10 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mModuleManager.startLoad();
         mAppManager = new AppManager();
         mAppManager.startLoad();
-        mSafeModeEnabled = new File(Dreamland.BASE_DIR, SAFE_MODE_FILENAME).exists();
-        mGlobalModeEnabled = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME).exists();
-        mResourcesHookEnabled = new File(Dreamland.BASE_DIR, ENABLE_RESOURCES_FILENAME).exists();
+        mSafeModeEnabled = enabled(SAFE_MODE_FILENAME);
+        mGlobalModeEnabled = enabled(GLOBAL_MODE_FILENAME);
+        mResourcesHookEnabled = enabled(ENABLE_RESOURCES_FILENAME);
+        mSkipSystemServer = enabled(SKIP_SYSTEM_SERVER);
     }
 
     public static DreamlandManagerService start() {
@@ -108,6 +113,18 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     public void setCannotHookSystemServer() {
         cannotHookSystemServer = true;
+    }
+
+    public boolean hookLoadPackageInSystemServer() {
+        if (mSafeModeEnabled) return false;
+        if (mGlobalModeEnabled) return true;
+        if (mSkipSystemServer) return false;
+        if (mAppManager.getAllEnabled().isEmpty()) {
+            mSkipSystemServer = true;
+            touch(SKIP_SYSTEM_SERVER, true);
+            return false;
+        }
+        return true;
     }
 
     @Override public int getVersion() {
@@ -162,6 +179,27 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         enforceManager("setAppEnabled");
         mAppManager.setEnabled(packageName, enabled);
         mEnabledAppCache = null;
+
+        if (AppConstants.ANDROID.equals(packageName)) return; // system server itself
+        if (pm.getPackageUid(packageName, 0, UserHandle.getCallingUserId()) == Process.SYSTEM_UID) {
+            if (enabled) {
+                if (mSkipSystemServer) {
+                    mSkipSystemServer = false;
+                    touch(SKIP_SYSTEM_SERVER, false);
+                }
+            } else {
+                if (mSkipSystemServer) return;
+                String[] packages = mAppUidMap.get(Process.SYSTEM_UID);
+                if (packages == null || packages.length == 0) return;
+                for (String pkg : packages) {
+                    if (packageName.equals(pkg)) continue;
+                    if (AppConstants.ANDROID.equals(pkg)) continue;
+                    if (mAppManager.isEnabled(pkg)) return;
+                }
+                mSkipSystemServer = true;
+                touch(SKIP_SYSTEM_SERVER, true);
+            }
+        }
     }
 
     @Override public String[] getEnabledModulesFor(String packageName) {
@@ -284,6 +322,10 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     private String[] getPackagesForCallingUid() {
         return mAppUidMap.get(Binder.getCallingUid());
+    }
+
+    private boolean enabled(String config) {
+        return new File(Dreamland.BASE_DIR, config).exists();
     }
 
     private void touch(String filename, boolean enabled) {

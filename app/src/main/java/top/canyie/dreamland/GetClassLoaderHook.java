@@ -2,7 +2,7 @@ package top.canyie.dreamland;
 
 import android.app.LoadedApk;
 import android.content.pm.ApplicationInfo;
-import android.content.res.CompatibilityInfo;
+import android.os.RemoteException;
 import android.util.Log;
 
 import java.lang.reflect.Method;
@@ -24,6 +24,7 @@ class GetClassLoaderHook extends MethodHook {
     private String processName;
     private ApplicationInfo appInfo;
     private boolean isFirstApp;
+    private String[] modules;
     private MethodHook.Unhook unhook;
 
     private GetClassLoaderHook() {
@@ -31,6 +32,20 @@ class GetClassLoaderHook extends MethodHook {
 
     public static void install(IDreamlandManager dm, LoadedApk loadedApk, String packageName,
                                String processName, ApplicationInfo appInfo, boolean isFirstApp) {
+        String[] modules;
+
+        try {
+            modules = dm.getEnabledModulesFor(packageName);
+        } catch (RemoteException e) {
+            Log.e(Dreamland.TAG, "Failure from remote dreamland service", e);
+            return;
+        }
+
+        if (modules == null || modules.length == 0) {
+            Log.i(Dreamland.TAG, "No module needs to hook into package " + packageName);
+            return;
+        }
+
         GetClassLoaderHook hook = new GetClassLoaderHook();
         hook.dm = dm;
         hook.loadedApk = loadedApk;
@@ -38,6 +53,7 @@ class GetClassLoaderHook extends MethodHook {
         hook.processName = processName;
         hook.appInfo = appInfo;
         hook.isFirstApp = isFirstApp;
+        hook.modules = modules;
         try {
             hook.unhook = Pine.hook(getClassLoader, hook);
         } catch (Throwable e) {
@@ -51,7 +67,7 @@ class GetClassLoaderHook extends MethodHook {
 
         try {
             ClassLoader classLoader = (ClassLoader) callFrame.getResult();
-            Dreamland.packageReady(dm, packageName, processName, appInfo, classLoader, isFirstApp, Main.mainZygote);
+            Dreamland.packageReady(dm, packageName, processName, appInfo, classLoader, isFirstApp, Main.mainZygote, modules);
         } finally {
             unhook.unhook();
         }

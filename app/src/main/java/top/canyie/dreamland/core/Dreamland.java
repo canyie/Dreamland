@@ -62,7 +62,7 @@ public final class Dreamland {
 
     public static void packageReady(IDreamlandManager manager, String packageName, String processName,
                                     ApplicationInfo appInfo, ClassLoader classLoader,
-                                    boolean isFirstApp, boolean mainZygote) {
+                                    boolean isFirstApp, boolean mainZygote, String[] modules) {
         if (MANAGER_PACKAGE_NAME.equals(packageName)) {
             Log.i(TAG, "This app is dreamland manager.");
 
@@ -102,18 +102,20 @@ public final class Dreamland {
             return;
         }
 
-        String[] modules;
-        try {
-            modules = manager.getEnabledModulesFor(packageName);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failure from remote dreamland service", e);
-            return;
+        if (modules == null) {
+            try {
+                modules = manager.getEnabledModulesFor(packageName);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failure from remote dreamland service", e);
+                return;
+            }
+
+            if (modules == null || modules.length == 0) {
+                Log.i(Dreamland.TAG, "No module needs to hook into package " + packageName);
+                return;
+            }
         }
 
-        if (modules == null || modules.length == 0) {
-            Log.i(TAG, "No module needs to hook into this package, skip.");
-            return;
-        }
         prepareModulesFor(manager, packageName, processName, modules, mainZygote);
         PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
     }

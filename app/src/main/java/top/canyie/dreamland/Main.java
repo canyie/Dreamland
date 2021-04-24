@@ -12,6 +12,7 @@ import android.content.res.XResources;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.os.SystemProperties;
 import android.text.TextUtils;
 import android.util.Log;
@@ -172,7 +173,7 @@ public final class Main {
                         String packageName = appInfo.packageName.equals("android") ? "system" : appInfo.packageName;
                         String processName = ActivityThread.AppBindData.processName.getValue(appBindData);
                         ClassLoader classLoader = loadedApk.getClassLoader();
-                        Dreamland.packageReady(dm, packageName, processName, appInfo, classLoader, true, mainZygote);
+                        Dreamland.packageReady(dm, packageName, processName, appInfo, classLoader, true, mainZygote, null);
                     }
                 });
 
@@ -186,6 +187,7 @@ public final class Main {
                 if (!XposedHelpers.getBooleanField(loadedApk, "mIncludeCode")) return;
                 String packageName = loadedApk.getPackageName();
                 XResources.setPackageNameForResDir(packageName, loadedApk.getResDir());
+
                 if (AppConstants.ANDROID.equals(packageName)) return;
                 if (!Dreamland.loadedPackages.add(packageName)) return; // Already hooked
 
@@ -278,10 +280,15 @@ public final class Main {
                                         }
                                     });
                         }
+
+                        if (dms.hookLoadPackageInSystemServer()) {
+                            Log.i(TAG, "Hooking package load in system server");
+                            hookPackageLoad(dms);
+                        } else {
+                            Log.i(TAG, "No need to hook loadPackage in system server");
+                        }
                     }
                 });
-
-                hookPackageLoad(dms);
             } catch (Throwable e) {
                 Log.e(TAG, "Cannot hook methods in system_server. Maybe the SEPolicy patch rules not loaded properly by Magisk.", e);
                 dms.setCannotHookSystemServer();
