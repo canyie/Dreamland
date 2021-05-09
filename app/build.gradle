@@ -53,9 +53,10 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
     implementation 'androidx.annotation:annotation:1.1.0'
-    implementation 'top.canyie.pine:core:0.2.4'
+    // The latest pine not published to online repo yet, just direct use aar
+    //implementation 'top.canyie.pine:core:0.2.5'
     implementation 'top.canyie.pine:xposed:0.0.8'
     implementation 'top.canyie.pine:enhances:0.0.1'
     implementation 'com.google.code.gson:gson:2.8.6'
