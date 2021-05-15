@@ -14,9 +14,8 @@
 namespace dreamland {
     class Dreamland {
     public:
-        // TODO: Get these versions from gradle
-        static constexpr const char* VERSION_NAME = "2.0";
-        static constexpr int VERSION = 2004;
+        static constexpr const char* VERSION_NAME = RIRU_MODULE_VERSION_NAME;
+        static constexpr int VERSION = DREAMLAND_VERSION_CODE;
 
         static bool ShouldDisable();
 

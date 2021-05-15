@@ -17,10 +17,17 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cFlags "-Wall -Wextra -Werror -fvisibility=hidden"
-                cppFlags "-std=c++17"
-                arguments "-DRIRU_NEW_MODULE_API_VERSION=$rootProject.ext.riruNewApiVersion",
-                    "-DRIRU_MODULE_VERSION_NAME=$rootProject.ext.versionName"
+                def flags = "-ffixed-x18" +
+                        " -fvisibility=hidden" +
+                        " -fvisibility-inlines-hidden" +
+                        " -fno-rtti" + " -fno-exceptions" +
+                        " -Wno-builtin-macro-redefined" +
+                        " -D__FILE__=__FILE_NAME__"
+                cFlags "-Wall -Wextra $flags"
+                cppFlags "-std=c++17 $flags"
+                arguments "-DRIRU_MODULE_VERSION_NAME=$rootProject.ext.versionName",
+                        "-DRIRU_NEW_MODULE_API_VERSION=$rootProject.ext.riruNewApiVersion",
+                        "-DDREAMLAND_VERSION_CODE=$rootProject.ext.versionCode"
             }
         }
         ndk {

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 add_definitions(-DRIRU_NEW_MODULE_API_VERSION=${RIRU_NEW_MODULE_API_VERSION})
 add_definitions(-DRIRU_MODULE_VERSION_NAME="${RIRU_MODULE_VERSION_NAME}")
+add_definitions(-DDREAMLAND_VERSION_CODE=${DREAMLAND_VERSION_CODE})
 
 add_library(riru_dreamland
         SHARED
