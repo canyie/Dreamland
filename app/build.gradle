@@ -5,7 +5,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
 
     // ndk version is required on my computer but not required on CI
-    ndkVersion rootProject.ext.ndkVersion
+    // ndkVersion rootProject.ext.ndkVersion
 
     defaultConfig {
         applicationId "top.canyie.dreamland"
