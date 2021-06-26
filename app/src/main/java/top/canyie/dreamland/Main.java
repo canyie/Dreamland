@@ -84,15 +84,6 @@ public final class Main {
         Pine.setJitCompilationAllowed(false);
         PineEnhances.libLoader = () -> {};
         PineEnhances.enableDelayHook();
-
-        String realAbi = SystemProperties.get( "ro.product.cpu.abi", "");
-        if (TextUtils.isEmpty(realAbi)) {
-            Log.e(TAG, "System property 'ro.product.cpu.abi' is missing on the device");
-            mainZygote = false;
-        } else {
-            // For 32-bit process running on 64-bit device, Build.CPU_ABI is 32-bit api
-            mainZygote = Build.CPU_ABI.equalsIgnoreCase(realAbi);
-        }
     }
 
     public static int zygoteInit() {
@@ -206,6 +197,8 @@ public final class Main {
     public static void onSystemServerStart() {
         try {
             if (!inited) commonInit();
+            mainZygote = true;
+
             Log.i(TAG, "System server is started!");
 
             // Start loading the properties asynchronously first to minimize time-consuming.
@@ -301,9 +294,10 @@ public final class Main {
         }
     }
 
-    public static void onAppProcessStart(IBinder service) {
+    public static void onAppProcessStart(IBinder service, boolean requestedStartSystemServer) {
         try {
             if (!inited) commonInit();
+            mainZygote = requestedStartSystemServer;
 
             Dreamland.isSystem = false;
 

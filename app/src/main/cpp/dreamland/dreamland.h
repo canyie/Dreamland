@@ -48,7 +48,7 @@ namespace dreamland {
             return false;
         }
 
-        static bool OnAppProcessStart(JNIEnv* env);
+        static bool OnAppProcessStart(JNIEnv* env, bool start_system_server);
 
         static bool OnSystemServerStart(JNIEnv* env);
 

@@ -24,6 +24,7 @@ bool disabled = false;
 bool starting_child_zygote = false;
 int uid_ = -1;
 int* riru_allow_unload_ = nullptr;
+bool requested_start_system_server_ = false;
 
 void AllowUnload() {
     if (riru_allow_unload_) *riru_allow_unload_ = 1;
@@ -63,7 +64,7 @@ static inline void PostForkApp(JNIEnv* env, jint result) {
             if (UNLIKELY(starting_child_zygote))  {
                 // child zygote not allowed to do binder transaction
                 LOGW("Skipping inject this process because it is child zygote");
-            } else if (Dreamland::OnAppProcessStart(env)) {
+            } else if (Dreamland::OnAppProcessStart(env, requested_start_system_server_)) {
                 allow_unload = false;
             }
         }
@@ -93,6 +94,7 @@ EXPORT int nativeForkAndSpecializePost(JNIEnv* env, jclass, jint result) {
 
 EXPORT void nativeForkSystemServerPre(JNIEnv* env, jclass, uid_t*, gid_t*,
                                       jintArray*, jint*, jobjectArray*, jlong*, jlong*) {
+    requested_start_system_server_ = true;
     Prepare(env);
 }
 
@@ -138,6 +140,7 @@ static void specializeAppProcessPost(JNIEnv *env, jclass) {
 static void forkSystemServerPre(
         JNIEnv *env, jclass, uid_t *uid, gid_t *gid, jintArray *gids, jint *runtimeFlags,
         jobjectArray *rlimits, jlong *permittedCapabilities, jlong *effectiveCapabilities) {
+    requested_start_system_server_ = true;
     Prepare(env);
 }
 

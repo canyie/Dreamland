@@ -219,7 +219,7 @@ bool Dreamland::LoadDexFromMemory(JNIEnv* env, bool app) {
 
 bool Dreamland::FindEntryMethods(JNIEnv* env, jclass main_class, bool app, bool system_server) {
     if (app) {
-        onAppProcessStart = env->GetStaticMethodID(main_class, "onAppProcessStart", "(Landroid/os/IBinder;)V");
+        onAppProcessStart = env->GetStaticMethodID(main_class, "onAppProcessStart", "(Landroid/os/IBinder;Z)V");
         if (UNLIKELY(onAppProcessStart == nullptr)) {
             LOGE("Method onAppProcessStart() not found.");
             JNIHelper::AssertAndClearPendingException(env);
@@ -237,7 +237,7 @@ bool Dreamland::FindEntryMethods(JNIEnv* env, jclass main_class, bool app, bool 
     return true;
 }
 
-bool Dreamland::OnAppProcessStart(JNIEnv* env) {
+bool Dreamland::OnAppProcessStart(JNIEnv* env, bool start_system_server) {
     if (UNLIKELY(instance == nullptr)) return false;
     //if (UNLIKELY(!ZygoteInit(env))) return false;
 
@@ -254,7 +254,8 @@ bool Dreamland::OnAppProcessStart(JNIEnv* env) {
             LOGE("Failed to load dex data in app process");
             return false;
         }
-        env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart, service);
+        env->CallStaticVoidMethod(instance->java_main_class, instance->onAppProcessStart,
+                service, start_system_server ? JNI_TRUE : JNI_FALSE);
         if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
             LOGE("Failed to call java callback method onAppProcessStart");
             return false;
