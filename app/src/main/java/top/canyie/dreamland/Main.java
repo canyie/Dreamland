@@ -61,7 +61,7 @@ public final class Main {
     public static boolean mainZygote;
     private static boolean inited;
 
-    private static void commonInit(boolean system) {
+    private static void commonInit() {
         inited = true;
         ClassLoader classLoader = Main.class.getClassLoader();
 
@@ -81,7 +81,7 @@ public final class Main {
         PineConfig.libLoader = null;
 
         Pine.ensureInitialized();
-        if (system) Pine.setJitCompilationAllowed(false);
+        Pine.setJitCompilationAllowed(false);
         PineEnhances.libLoader = () -> {};
         PineEnhances.enableDelayHook();
 
@@ -97,7 +97,7 @@ public final class Main {
 
     public static int zygoteInit() {
         try {
-            commonInit(true);
+            commonInit();
             return 0;
         } catch (Throwable e) {
             try {
@@ -205,7 +205,7 @@ public final class Main {
 
     public static void onSystemServerStart() {
         try {
-            if (!inited) commonInit(true);
+            if (!inited) commonInit();
             Log.i(TAG, "System server is started!");
 
             // Start loading the properties asynchronously first to minimize time-consuming.
@@ -303,10 +303,7 @@ public final class Main {
 
     public static void onAppProcessStart(IBinder service) {
         try {
-            if (inited) // JIT compilation was disabled in zygote
-                Pine.setJitCompilationAllowed(true);
-            else
-                commonInit(false);
+            if (!inited) commonInit();
 
             Dreamland.isSystem = false;
 
