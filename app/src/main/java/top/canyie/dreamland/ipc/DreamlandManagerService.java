@@ -104,11 +104,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         if (appInfo == null) {
             return null;
         }
-        String apkPath = appInfo.publicSourceDir;
-        if (apkPath == null) {
-            apkPath = appInfo.sourceDir;
-        }
-        return apkPath;
+        return appInfo.sourceDir;
     }
 
     public void setCannotHookSystemServer() {
