@@ -2,12 +2,14 @@ package top.canyie.dreamland.core;
 
 import androidx.annotation.NonNull;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.ZipFile;
 
 /**
  * @author canyie
@@ -113,5 +115,13 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
 
     @NonNull @Override protected ConcurrentHashMap<String, ModuleInfo> createEmpty() {
         return new ConcurrentHashMap<>();
+    }
+
+    public static boolean isModuleValid(String apk) {
+        try (ZipFile zip = new ZipFile(apk)) {
+            return zip.getEntry("assets/xposed_init") != null;
+        } catch (IOException e) {
+            return false;
+        }
     }
 }

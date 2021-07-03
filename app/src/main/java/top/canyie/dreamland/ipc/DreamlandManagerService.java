@@ -18,6 +18,7 @@ import top.canyie.dreamland.utils.DLog;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -101,10 +102,13 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     public String getModulePath(String packageName) throws RemoteException {
         ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0, UserHandle.getCallingUserId());
-        if (appInfo == null) {
-            return null;
-        }
-        return appInfo.sourceDir;
+        if (appInfo == null) return null;
+        String[] splitSourceDirs = appInfo.splitSourceDirs;
+        if (splitSourceDirs == null) return appInfo.sourceDir;
+
+        String[] apks = Arrays.copyOf(splitSourceDirs, splitSourceDirs.length + 1);
+        apks[splitSourceDirs.length] = appInfo.sourceDir;
+        return Arrays.stream(apks).filter(ModuleManager::isModuleValid).findFirst().orElse(null);
     }
 
     public void setCannotHookSystemServer() {
