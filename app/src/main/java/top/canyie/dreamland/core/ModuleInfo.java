@@ -3,6 +3,8 @@ package top.canyie.dreamland.core;
 import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -19,7 +21,7 @@ import java.util.Set;
      * This module has been enabled for the applications contained in the collection.
      * null: module activation scope not enabled for this module.
      */
-    @Nullable private Set<String> enabledFor;
+    @Nullable @SerializedName(value = "scope", alternate = "enabledFor") private Set<String> scope;
 
     public ModuleInfo() {
     }
@@ -29,28 +31,26 @@ import java.util.Set;
     }
 
     public boolean isEnabledFor(String packageName) {
-        return enabledFor == null || enabledFor.contains(packageName);
+        return scope == null || scope.contains(packageName);
     }
 
-    public String[] getEnabledFor() {
-        if (enabledFor == null) return null;
-        return enabledFor.toArray(new String[enabledFor.size()]);
+    public String[] getScope() {
+        if (scope == null) return null;
+        return scope.toArray(new String[scope.size()]);
     }
 
-    public void setEnabledFor(String[] packages) {
+    public void setScope(String[] packages) {
         if (packages == null) {
             // Disable module activation scope
-            enabledFor = null;
+            scope = null;
             return;
         }
-        if (enabledFor == null)
-            enabledFor = new HashSet<>(4);
+        if (scope == null)
+            scope = new HashSet<>(4);
         else
-            enabledFor.clear();
-        Collections.addAll(enabledFor, packages);
+            scope.clear();
+        Collections.addAll(scope, packages);
     }
-
-
 
 //    public ModuleInfo(String name, String path) {
 //        this.name = name;

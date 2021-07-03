@@ -28,7 +28,7 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
     public String[] getEnabledAppsFor(String packageName) {
         ModuleInfo module = getRealObject().get(packageName);
         if (module == null) return null;
-        return module.getEnabledFor();
+        return module.getScope();
     }
 
     public void setEnabledFor(String packageName, String[] apps) {
@@ -41,7 +41,7 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
             // Module path will set in enable().
             map.put(packageName, moduleInfo);
         }
-        moduleInfo.setEnabledFor(apps);
+        moduleInfo.setScope(apps);
         notifyDataChanged();
     }
 
