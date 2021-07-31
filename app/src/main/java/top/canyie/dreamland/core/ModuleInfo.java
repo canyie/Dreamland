@@ -2,7 +2,7 @@ package top.canyie.dreamland.core;
 
 import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
-;
+
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Collections;

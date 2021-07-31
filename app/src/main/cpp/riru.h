@@ -58,11 +58,6 @@ typedef struct {
 typedef RiruModuleInfoV9 RiruModuleInfoV10;
 
 typedef struct {
-    // ...
-} RiruApiV9;
-
-typedef RiruApiV9 RiruApiV10;
-typedef struct {
     int supportHide;
     int version;
     const char *versionName;
@@ -96,8 +91,6 @@ EXPORT void* init(Riru* arg);
 
 #ifdef __cplusplus
 }
-
-
 #endif
 
 #endif //DREAMLAND_RIRU_H
