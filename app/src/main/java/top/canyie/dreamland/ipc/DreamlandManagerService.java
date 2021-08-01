@@ -52,7 +52,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private final LruCache<String, String[]> mEnabledModuleCache = new LruCache<String, String[]>(128) {
         @Override protected String[] create(String key) {
             HashSet<String> set = new HashSet<>();
-            mModuleManager.getEnabledFor(key, set);
+            mModuleManager.getScopeFor(key, set);
             return set.toArray(new String[set.size()]);
         }
     };
@@ -300,17 +300,17 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         touch(GLOBAL_MODE_FILENAME, enabled);
     }
 
-    @Override public String[] getEnabledAppsFor(String module) throws RemoteException {
-        enforceManager("getEnabledAppsFor");
+    @Override public String[] getScopeFor(String module) throws RemoteException {
+        enforceManager("getScopeFor");
         synchronized (mModuleManager) {
-            return mModuleManager.getEnabledAppsFor(module);
+            return mModuleManager.getScopeFor(module);
         }
     }
 
-    @Override public void setEnabledAppsFor(String module, String[] apps) throws RemoteException {
-        enforceManager("setEnabledAppsFor");
+    @Override public void setScopeFor(String module, String[] apps) throws RemoteException {
+        enforceManager("setScopeFor");
         synchronized (mModuleManager) {
-            mModuleManager.setEnabledFor(module, apps);
+            mModuleManager.setScopeFor(module, apps);
             mEnabledModuleCache.evictAll();
         }
     }

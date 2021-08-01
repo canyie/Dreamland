@@ -27,13 +27,13 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
         return getRealObject();
     }
 
-    public String[] getEnabledAppsFor(String packageName) {
+    public String[] getScopeFor(String packageName) {
         ModuleInfo module = getRealObject().get(packageName);
         if (module == null) return null;
         return module.getScope();
     }
 
-    public void setEnabledFor(String packageName, String[] apps) {
+    public void setScopeFor(String packageName, String[] apps) {
         Map<String, ModuleInfo> map = getRealObject();
         ModuleInfo moduleInfo = map.get(packageName);
         if (moduleInfo == null) {
@@ -61,7 +61,7 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
         return result;
     }
 
-    public void getEnabledFor(String packageName, Set<String> out) {
+    public void getScopeFor(String packageName, Set<String> out) {
         Map<String, ModuleInfo> map = getRealObject();
         if (map.isEmpty()) return;
         Collection<ModuleInfo> modules = map.values();
