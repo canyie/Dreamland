@@ -265,8 +265,11 @@ public final class Main {
                             final String processName = AppConstants.ANDROID; // it's actually system_server, but other functions return this as well
 
                             Dreamland.prepareModulesFor(dms, packageName, processName, modules, true);
+                            Class<?>[] paramTypes = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                                    ? new Class<?>[] { cl.loadClass("com.android.server.utils.TimingsTraceAndSlog") }
+                                    : new Class<?>[0];
                             Pine.hook(cl.loadClass("com.android.server.SystemServer")
-                                            .getDeclaredMethod("startBootstrapServices"),
+                                            .getDeclaredMethod("startBootstrapServices", paramTypes),
                                     new MethodHook() {
                                         @Override public void beforeCall(Pine.CallFrame callFrame) {
                                             PineXposed.onPackageLoad(packageName, processName, null, true, cl);
