@@ -36,7 +36,7 @@ ext {
     ndkVersion = "21.4.7075529"
     minSdkVersion = 24
     targetSdkVersion = 30 // useless for magisk module
-    versionCode = 2006
+    versionCode = 2007
     versionName = '2.0'
     minMagiskVersion = 19000
     riruApiVersion = 5 // For Riru v21
