@@ -9,7 +9,7 @@ Dreamland is a Xposed framework implementation, you can use it to use Xposed mod
 - For hooking third apps, only requires restart the target app, not the device
 - Strictly restrict modules, you can choose which apps need to load which modules
 
-**Note: Currently I do not have enough time and energy to maintain this project, so the development of this project will be inactive (but will not stop). I think other mature projects (like [LSPosed](https://github.com/LSPosed/LSPosed) and [TaiChi](https://taichi.cool/) ) will be good substitutes.
+**Note: Currently I do not have enough time and energy to maintain this project, so the development of this project will be inactive (but will not stop). I think other mature projects (like [LSPosed](https://github.com/LSPosed/LSPosed) and [TaiChi](https://taichi.cool/) ) will be good substitutes.**
 
 ## Warning
 **Dreamland needs to modify the system, installing Dreamland is dangerous; In any case, please back up your data yourself and be prepared for equipment damage, your use of Dreamland is at your own risk, we are not responsible for any of your losses.**
