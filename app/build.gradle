@@ -101,7 +101,7 @@ afterEvaluate {
 
 def moduleProp = [
         id: 'riru_dreamland',
-        name: 'Riru-Dreamland',
+        name: 'Riru - Dreamland',
         author: 'canyie',
         version: rootProject.ext.versionName + "_" + rootProject.ext.versionCode,
         versionCode: rootProject.ext.versionCode,

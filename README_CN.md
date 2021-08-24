@@ -9,6 +9,8 @@
 - 对于hook非系统应用（及部分系统应用），只需要目标应用重启而非整个设备
 - 严格限制模块，你可以选择哪些应用需要加载哪些模块
 
+**注: 目前我没有足够的时间和精力去维护这个项目, 此项目接下来的开发将不活跃（但不会停止）。其他成熟的框架实习（如 [LSPosed](https://github.com/LSPosed/LSPosed) 和 [太极](https://taichi.cool/)）会是好的替代品。
+
 ## 警告
 **安装梦境是危险的; 无论如何，请自己备份好数据并做好设备完全损坏的准备, 我们不对您的任何损失负责。**
 
@@ -24,7 +26,8 @@
 - Canary: 测试版本，由CI自动构建，使用风险自负。可以在 [Azure Pipelines](https://dev.azure.com/ssz33334930121/ssz3333493/_build/latest?definitionId=1&branchName=master) 下载到.
 
 ## 已知问题
-- ~~Pending hook 目前还不支持，hook静态方法会初始化它所在的类，一些模块可能无法正常工作。已知不工作的模块：哔哩布丁。~~ 已在最新beta版本中修复。
+- Thanox 模块不工作。请勿使用 Thanox 模块否则你的设备会开不了机。
+- [New XSharedPreferences](https://github.com/LSPosed/LSPosed/wiki/New-XSharedPreferences) 未实现在梦境中，需要该功能的模块不会工作。我们正在计划一个叫做 "XRemotePreferences" 的新 API，它稳定、实现漂亮、易于维护，请至[此页面](https://github.com/libxposed/XposedService/issues/1) 了解更多并与我们交流。
 
 ## 交流
 - [QQ群: 949888394](https://shang.qq.com/wpa/qunwpa?idkey=25549719b948d2aaeb9e579955e39d71768111844b370fcb824d43b9b20e1c04)
