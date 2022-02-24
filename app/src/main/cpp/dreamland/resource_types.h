@@ -5,13 +5,52 @@
 #ifndef DREAMLAND_RESOURCE_TYPES_H
 #define DREAMLAND_RESOURCE_TYPES_H
 
-
+#include <variant>
+#include <optional>
 #include <cstdint>
 #include <sys/types.h>
 
 namespace android {
 
     typedef int32_t status_t;
+
+    template<class E>
+    struct unexpected {
+        E val_;
+    };
+
+    template<class T, class E>
+    struct expected {
+        using value_type = T;
+        using error_type = E;
+        using unexpected_type = unexpected<E>;
+        std::variant<value_type, unexpected_type> var_;
+
+        constexpr bool has_value() const noexcept { return var_.index() == 0; }
+
+        constexpr const T& value() const &{ return std::get<T>(var_); }
+
+        constexpr T& value() &{ return std::get<T>(var_); }
+
+        constexpr const T* operator->() const { return std::addressof(value()); }
+
+        constexpr T* operator->() { return std::addressof(value()); }
+    };
+
+    enum class IOError {
+        // Used when reading a file residing on an IncFs file-system times out.
+        PAGES_MISSING = -1,
+    };
+
+    template<typename TChar>
+    struct BasicStringPiece {
+        const TChar* data_;
+        size_t length_;
+    };
+
+    using NullOrIOError = std::variant<std::nullopt_t, IOError>;
+
+    using StringPiece16 = BasicStringPiece<char16_t>;
 
     enum {
         RES_NULL_TYPE = 0x0000,

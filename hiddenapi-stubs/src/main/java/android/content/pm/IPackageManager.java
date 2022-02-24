@@ -12,11 +12,21 @@ import android.os.RemoteException;
 public interface IPackageManager extends IInterface {
     ApplicationInfo getApplicationInfo(String packageName, int flags, int userId) throws RemoteException;
 
+    @TargetApi(33)
+    ApplicationInfo getApplicationInfo(String packageName, long flags, int userId)
+            throws RemoteException;
+
     PackageInfo getPackageInfo(String packageName, int flags, int userId) throws RemoteException;
+
+    @TargetApi(33)
+    PackageInfo getPackageInfo(String packageName, long flags, int userId) throws RemoteException;
 
     int getPackageUid(String packageName, int userId) throws RemoteException;
 
     int getPackageUid(String packageName, int flags, int userId) throws RemoteException;
+
+    @TargetApi(33)
+    int getPackageUid(String packageName, long flags, int userId) throws RemoteException;
 
     String[] getPackagesForUid(int uid) throws RemoteException;
 

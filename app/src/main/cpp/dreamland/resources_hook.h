@@ -7,6 +7,7 @@
 
 #include <jni.h>
 #include <cstddef>
+#include "resource_types.h"
 
 namespace dreamland {
     class ResourcesHook {
@@ -19,6 +20,8 @@ namespace dreamland {
         static int32_t (*ResXMLParser_restart)(void*);
         static int32_t (*ResXMLParser_getAttributeNameID)(void*, int);
         static char16_t* (*ResStringPool_stringAt)(const void*, int32_t, size_t*);
+        static android::expected<android::StringPiece16, android::NullOrIOError> (*ResStringPool_stringAtS)(
+                const void*, size_t);
         static jclass XResources;
         static jmethodID translateResId;
         static jmethodID translateAttrId;
