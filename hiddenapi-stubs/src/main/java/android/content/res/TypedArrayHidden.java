@@ -2,17 +2,20 @@ package android.content.res;
 
 import android.graphics.drawable.Drawable;
 
-public class TypedArray {
+import dev.rikka.tools.refine.RefineAs;
+
+@RefineAs(TypedArray.class)
+public class TypedArrayHidden {
 	/** Only for API stubs creation, DO NOT USE! */
-	public TypedArray() {
+	public TypedArrayHidden() {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
-	protected TypedArray(Resources resources) {
+	protected TypedArrayHidden(Resources resources) {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
-	protected TypedArray(Resources resources, int[] data, int[] indices, int len) {
+	protected TypedArrayHidden(Resources resources, int[] data, int[] indices, int len) {
 		throw new UnsupportedOperationException("Stub!");
 	}
 

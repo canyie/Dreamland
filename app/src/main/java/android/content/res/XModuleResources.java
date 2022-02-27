@@ -7,6 +7,7 @@ import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.IXposedHookZygoteInit.StartupParam;
 import de.robv.android.xposed.callbacks.XC_InitPackageResources.InitPackageResourcesParam;
+import dev.rikka.tools.refine.Refine;
 
 /**
  * Provides access to resources from a certain path (usually the module's own path).
@@ -33,7 +34,7 @@ public class XModuleResources extends Resources {
 			throw new IllegalArgumentException("path must not be null");
 
 		AssetManager assets = new AssetManager();
-		assets.addAssetPath(path);
+		Refine.<AssetManagerHidden>unsafeCast(assets).addAssetPath(path);
 
 		XModuleResources res;
 		if (origRes != null)

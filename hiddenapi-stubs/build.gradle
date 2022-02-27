@@ -16,6 +16,12 @@ android {
     }
 }
 
+dependencies {
+    def refinePluginVersion = '3.0.3'
+    annotationProcessor "dev.rikka.tools.refine:annotation-processor:$refinePluginVersion"
+    compileOnly "dev.rikka.tools.refine:annotation:$refinePluginVersion"
+}
+
 task jarStubApis(type: Jar, dependsOn: build) {
     baseName 'hiddenapis-stub'
     from("$projectDir/build/intermediates/javac/release/classes/")

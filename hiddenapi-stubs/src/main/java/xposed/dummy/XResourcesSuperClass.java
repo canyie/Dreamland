@@ -7,6 +7,7 @@ import android.content.res.Resources;
  */
 public class XResourcesSuperClass extends Resources {
     protected XResourcesSuperClass(ClassLoader classLoader) {
-        super(classLoader);
+        super(null, null, null);
+        throw new UnsupportedOperationException("Stub!");
     }
 }

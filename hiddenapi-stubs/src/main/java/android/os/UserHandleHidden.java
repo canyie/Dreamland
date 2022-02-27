@@ -1,13 +1,16 @@
 package android.os;
 
+import dev.rikka.tools.refine.RefineAs;
+
 /**
  * @author canyie
  */
-public final class UserHandle {
+@RefineAs(UserHandle.class)
+public final class UserHandleHidden {
     public static final int USER_ALL = -1;
-    public static final UserHandle ALL = new UserHandle(USER_ALL);
+    public static final UserHandleHidden ALL = new UserHandleHidden(USER_ALL);
 
-    private UserHandle(int h) {
+    private UserHandleHidden(int h) {
         throw new UnsupportedOperationException("Stub!");
     }
 

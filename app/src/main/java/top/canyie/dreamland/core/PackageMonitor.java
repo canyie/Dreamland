@@ -7,14 +7,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.os.UserHandleHidden;
 import android.util.Log;
-import android.widget.Toast;
-
 import java.lang.reflect.Method;
 
 import top.canyie.dreamland.ipc.DreamlandManagerService;
@@ -103,7 +101,7 @@ public class PackageMonitor extends BroadcastReceiver {
                 Method registerReceiverAsUser = Context.class.getDeclaredMethod("registerReceiverAsUser",
                         BroadcastReceiver.class, UserHandle.class, IntentFilter.class, String.class, Handler.class);
                 registerReceiverAsUser.setAccessible(true);
-                registerReceiverAsUser.invoke(context, monitor, UserHandle.ALL, intentFilter, null, h);
+                registerReceiverAsUser.invoke(context, monitor, UserHandleHidden.ALL, intentFilter, null, h);
 
                 context = null;
                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);

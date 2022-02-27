@@ -18,11 +18,11 @@ steps:
       javaHomeOption: 'JDKVersion'
       jdkVersionOption: '1.8'
       publishJUnitResults: false
-      tasks: 'assembleMagiskRelease'
+      tasks: 'assembleMagiskDebug'
 
   - task: CopyFiles@2
     inputs: 
-      contents: '**/build/outputs/magisk/magisk-dreamland-**.zip'
+      contents: '**/build/outputs/magisk/dreamland-**.zip'
       targetFolder: '$(build.artifactStagingDirectory)'
       cleanTargetFolder: true
       flattenFolders: true

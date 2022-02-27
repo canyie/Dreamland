@@ -6,7 +6,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.Process;
 import android.os.RemoteException;
-import android.os.UserHandle;
+import android.os.UserHandleHidden;
 import android.util.Log;
 import android.util.LruCache;
 
@@ -101,7 +101,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     }
 
     public String getModulePath(String packageName) throws RemoteException {
-        ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0, UserHandle.getCallingUserId());
+        ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0, UserHandleHidden.getCallingUserId());
         if (appInfo == null) return null;
         String[] splitSourceDirs = appInfo.splitSourceDirs;
         if (splitSourceDirs == null) return appInfo.sourceDir;
@@ -181,7 +181,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mEnabledAppCache = null;
 
         if (AppConstants.ANDROID.equals(packageName)) return; // system server itself
-        if (pm.getPackageUid(packageName, 0, UserHandle.getCallingUserId()) == Process.SYSTEM_UID) {
+        if (pm.getPackageUid(packageName, 0, UserHandleHidden.getCallingUserId()) == Process.SYSTEM_UID) {
             if (enabled) {
                 if (mSkipSystemServer) {
                     mSkipSystemServer = false;

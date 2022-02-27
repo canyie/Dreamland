@@ -5,6 +5,7 @@ import android.app.AndroidAppHelper;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.res.Resources;
+import android.content.res.ResourcesHidden;
 import android.content.res.ResourcesKey;
 import android.content.res.TypedArray;
 import android.content.res.XResources;
@@ -21,6 +22,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_InitPackageResources;
 import de.robv.android.xposed.callbacks.XCallback;
+import dev.rikka.tools.refine.Refine;
 import top.canyie.dreamland.BuildConfig;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 
@@ -233,8 +235,9 @@ public final class Dreamland {
 
         // Replace system resources
         Resources originSystemRes = Resources.getSystem();
-        XResources systemRes = new XResources(originSystemRes.getClassLoader());
-        systemRes.setImpl(originSystemRes.getImpl());
+        ResourcesHidden originSystemResWrapper = Refine.unsafeCast(originSystemRes);
+        XResources systemRes = new XResources(originSystemResWrapper.getClassLoader());
+        Refine.<ResourcesHidden>unsafeCast(systemRes).setImpl(originSystemResWrapper.getImpl());
         systemRes.initObject(null);
         setStaticObjectField(Resources.class, "mSystem", systemRes);
 
@@ -249,8 +252,9 @@ public final class Dreamland {
         }
 
         // Replace the returned resources with our subclass.
-        XResources newRes = new XResources(origin.getClassLoader());
-        newRes.setImpl(origin.getImpl());
+        ResourcesHidden originWrapper = Refine.unsafeCast(origin);
+        XResources newRes = new XResources(originWrapper.getClassLoader());
+        Refine.<ResourcesHidden>unsafeCast(newRes).setImpl(originWrapper.getImpl());
         newRes.initObject(resDir);
 
         // Invoke handleInitPackageResources().

@@ -4,15 +4,12 @@ buildscript {
     repositories {
         mavenLocal()
         google()
-        jcenter()
-
-        maven {
-            url  "https://dl.bintray.com/canyie/pine"
-        }
+        mavenCentral()
     }
+
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.2'
-        
+        classpath 'com.android.tools.build:gradle:7.1.2'
+        classpath 'dev.rikka.tools.refine:gradle-plugin:3.0.3'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
@@ -22,18 +19,14 @@ allprojects {
     repositories {
         mavenLocal()
         google()
-        jcenter()
-
-        maven {
-            url  "https://dl.bintray.com/canyie/pine"
-        }
+        mavenCentral()
     }
 }
 
 ext {
-    compileSdkVersion = 30
-    buildToolsVersion = '30.0.2'
-    ndkVersion = "21.4.7075529"
+    compileSdkVersion = 32
+    buildToolsVersion = '32.0.0'
+    ndkVersion = "23.1.7779620"
     minSdkVersion = 24
     targetSdkVersion = 30 // useless for magisk module
     versionCode = 2100

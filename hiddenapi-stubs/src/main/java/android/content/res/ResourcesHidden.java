@@ -7,7 +7,10 @@ import android.util.TypedValue;
 
 import java.io.InputStream;
 
-public class Resources {
+import dev.rikka.tools.refine.RefineAs;
+
+@RefineAs(Resources.class)
+public class ResourcesHidden {
 	@SuppressWarnings("serial")
 	public static class NotFoundException extends RuntimeException {
 		public NotFoundException() {
@@ -21,11 +24,11 @@ public class Resources {
 	public final class Theme {
 	}
 
-	public Resources(ClassLoader classLoader) {
+	public ResourcesHidden(ClassLoader classLoader) {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
-	public Resources(AssetManager assets, DisplayMetrics metrics, Configuration config) {
+	public ResourcesHidden(AssetManagerHidden assets, DisplayMetrics metrics, Configuration config) {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
