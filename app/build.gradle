@@ -4,7 +4,6 @@ android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
 
-    // ndk version is required on my computer but not required on CI
     ndkVersion rootProject.ext.ndkVersion
 
     defaultConfig {
@@ -17,17 +16,10 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                def flags = "-ffixed-x18" +
-                        " -fvisibility=hidden" +
-                        " -fvisibility-inlines-hidden" +
-                        " -fno-rtti" + " -fno-exceptions" +
-                        " -Wno-builtin-macro-redefined" +
-                        " -D__FILE__=__FILE_NAME__"
-                cFlags "-Wall -Wextra $flags"
-                cppFlags "-std=c++17 $flags"
                 arguments "-DRIRU_MODULE_VERSION_NAME=$rootProject.ext.versionName",
                         "-DRIRU_NEW_MODULE_API_VERSION=$rootProject.ext.riruNewApiVersion",
-                        "-DDREAMLAND_VERSION_CODE=$rootProject.ext.versionCode"
+                        "-DDREAMLAND_VERSION_CODE=$rootProject.ext.versionCode",
+                        '-DANDROID_STL=none' // built-in libcxx introduced exception, so use our own instead
             }
         }
         ndk {
@@ -57,6 +49,10 @@ android {
             version "3.18.1"
         }
     }
+
+    buildFeatures {
+        prefab true
+    }
 }
 
 dependencies {
@@ -68,6 +64,8 @@ dependencies {
     //implementation 'top.canyie.pine:enhances:0.0.1'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'dev.rikka.tools.refine:runtime:3.0.3'
+    implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
+    implementation "io.github.vvb2060.ndk:dobby:1.2"
     compileOnly project(':hiddenapi-stubs')
     testImplementation 'junit:junit:4.12'
     //androidTestImplementation 'androidx.test.ext:junit:1.1.0'
