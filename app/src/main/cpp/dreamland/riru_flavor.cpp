@@ -1,98 +1,36 @@
-#include <cstdlib>
-#include <cerrno>
-#include <cstring>
-#include <jni.h>
-#include <unistd.h>
-#include <dlfcn.h>
-#include <asm/fcntl.h>
-#include <fcntl.h>
-#include "pine.h"
-#include "riru.h"
-#include "utils/log.h"
-#include "utils/macros.h"
-#include "utils/well_known_classes.h"
-#include "utils/selinux.h"
-#include "utils/selinux_helper.h"
-#include "utils/scoped_local_ref.h"
-#include "dreamland/dreamland.h"
-#include "dreamland/android.h"
+//
+// Created by canyie on 2022/2/28.
+//
+
+#include "dreamland.h"
+#include "flavor.h"
+#include "../riru.h"
 
 using namespace dreamland;
 
-int riru_api_version = 0;
-bool disabled = false;
-bool starting_child_zygote = false;
-int uid_ = -1;
-int* riru_allow_unload_ = nullptr;
-bool requested_start_system_server_ = false;
-bool skip_ = false;
+static int riru_api_version = 0;
+static int* riru_allow_unload_ = nullptr;
+static bool requested_start_system_server_ = false;
 
-void AllowUnload() {
+// Skip incomplete fork (post fork happens before pre fork)
+static bool skip_ = true;
+
+static void AllowUnload() {
     if (riru_allow_unload_) *riru_allow_unload_ = 1;
 }
 
 EXPORT void onModuleLoaded() {
-    LOGI("Welcome to Dreamland %s (%d)!", Dreamland::VERSION_NAME, Dreamland::VERSION);
-    disabled = Dreamland::ShouldDisable();
-    if (UNLIKELY(disabled)) {
-        LOGW("Dreamland framework should be disabled, do nothing.");
-        return;
-    }
-    Android::Initialize();
-    int api_level = Android::version;
-    LOGI("Android Api Level %d", api_level);
-    PineSetAndroidVersion(api_level);
-    Dreamland::Prepare();
+    Flavor::OnModuleLoaded(true);
 }
 
-bool SkipThis() {
-    if (UNLIKELY(disabled)) return true;
-    if (LIKELY(uid_ != -1)) {
-        if (UNLIKELY(Dreamland::ShouldSkipUid(uid_))) {
-            LOGW("Skipping this process because it is isolated service, RELTO updater or webview zygote");
-            return true;
-        }
-    }
-    if (UNLIKELY(starting_child_zygote)) {
-        // child zygote is not allowed to do binder transaction, so our binder call will crash it
-        LOGW("Skipping this process because it is a child zygote");
-        return true;
-    }
-    return false;
+static void PostForkApp(JNIEnv* env) {
+    bool allow_unload = skip_ || !Flavor::PostForkApp(env, requested_start_system_server_);
+    if (allow_unload)
+        AllowUnload();
 }
 
 EXPORT int shouldSkipUid(int uid) {
     return Dreamland::ShouldSkipUid(uid) ? 1 : 0;
-}
-
-static inline void Prepare(JNIEnv* env) {
-    skip_ = SkipThis();
-    if (skip_) return;
-    Dreamland::ZygoteInit(env);
-}
-
-static inline void PostForkApp(JNIEnv* env, jint result) {
-    if (result == 0) { // child
-        bool allow_unload = true;
-        if (!skip_) {
-            if (Dreamland::OnAppProcessStart(env, requested_start_system_server_)) {
-                allow_unload = false;
-            }
-        }
-        if (allow_unload) AllowUnload();
-    } else { // zygote
-        uid_ = -1;
-        skip_ = false;
-    }
-}
-
-static inline void PostForkSystemServer(JNIEnv* env, jint result) {
-    if (result == 0) { // child
-        if (LIKELY(!disabled)) Dreamland::OnSystemServerStart(env);
-    } else { // zygote
-        uid_ = -1;
-        skip_ = false;
-    }
 }
 
 EXPORT void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint* gid_ptr,
@@ -100,12 +38,14 @@ EXPORT void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint*
                                        jstring*, jintArray*, jintArray*,
                                        jboolean* is_child_zygote, jstring*, jstring*, jboolean*,
                                        jobjectArray*) {
-    starting_child_zygote = *is_child_zygote;
-    Prepare(env);
+    if (skip_ = Flavor::ShouldSkip(*is_child_zygote, *uid_ptr); !skip_) {
+        Flavor::PreFork(env, true);
+    }
 }
 
 EXPORT int nativeForkAndSpecializePost(JNIEnv* env, jclass, jint result) {
-    PostForkApp(env, result);
+    if (result == 0) PostForkApp(env);
+    else skip_ = true;
     return 0;
 }
 
@@ -113,11 +53,11 @@ EXPORT void nativeForkSystemServerPre(JNIEnv* env, jclass, uid_t*, gid_t*,
                                       jintArray*, jint*, jobjectArray*, jlong*, jlong*) {
     requested_start_system_server_ = true;
     // Only skip system server when we are disabled
-    if (LIKELY(!disabled)) Dreamland::ZygoteInit(env);
+    if (LIKELY(!Flavor::IsDisabled())) Flavor::PreFork(env, true);
 }
 
 EXPORT int nativeForkSystemServerPost(JNIEnv* env, jclass, jint result) {
-    PostForkSystemServer(env, result);
+    if (result == 0 && !Flavor::IsDisabled()) Flavor::PostForkSystemServer(env);
     return 0;
 }
 
@@ -129,13 +69,14 @@ static void forkAndSpecializePre(
         jintArray *fdsToClose, jintArray *fdsToIgnore, jboolean *is_child_zygote,
         jstring *instructionSet, jstring *appDataDir, jboolean *isTopApp, jobjectArray *pkgDataInfoList,
         jobjectArray *whitelistedDataInfoList, jboolean *bindMountAppDataDirs, jboolean *bindMountAppStorageDirs) {
-    starting_child_zygote = *is_child_zygote;
-    uid_ = *_uid;
-    Prepare(env);
+    if (skip_ = Flavor::ShouldSkip(*is_child_zygote, *_uid); !skip_) {
+        Flavor::PreFork(env, true);
+    }
 }
 
 static void forkAndSpecializePost(JNIEnv *env, jclass, jint res) {
-    PostForkApp(env, res);
+    if (res == 0) PostForkApp(env);
+    else skip_ = true;
 }
 
 static void specializeAppProcessPre(
@@ -144,13 +85,13 @@ static void specializeAppProcessPre(
         jboolean *startChildZygote, jstring *instructionSet, jstring *appDataDir,
         jboolean *isTopApp, jobjectArray *pkgDataInfoList, jobjectArray *whitelistedDataInfoList,
         jboolean *bindMountAppDataDirs, jboolean *bindMountAppStorageDirs) {
-    starting_child_zygote = *startChildZygote;
-    uid_ = *_uid;
-    Prepare(env);
+    if (skip_ = Flavor::ShouldSkip(*startChildZygote, *_uid); !skip_) {
+        Flavor::PreFork(env, false);
+    }
 }
 
 static void specializeAppProcessPost(JNIEnv *env, jclass) {
-    PostForkApp(env, 0);
+    PostForkApp(env);
 }
 
 static void forkSystemServerPre(
@@ -158,11 +99,11 @@ static void forkSystemServerPre(
         jobjectArray *rlimits, jlong *permittedCapabilities, jlong *effectiveCapabilities) {
     requested_start_system_server_ = true;
     // Only skip system server when we are disabled
-    if (LIKELY(!disabled)) Dreamland::ZygoteInit(env);
+    if (LIKELY(!Flavor::IsDisabled())) Flavor::PreFork(env, true);
 }
 
 static void forkSystemServerPost(JNIEnv *env, jclass, jint res) {
-    PostForkSystemServer(env, res);
+    if (res == 0 && !Flavor::IsDisabled()) Flavor::PostForkSystemServer(env);
 }
 
 static auto module = RiruVersionedModuleInfo {

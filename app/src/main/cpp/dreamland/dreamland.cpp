@@ -51,6 +51,7 @@ bool Dreamland::ShouldDisable() {
 }
 
 void Dreamland::PreloadDexData() {
+    if (dex_data) return;
     std::string core_jar_file(kCoreJarFile);
     std::ifstream is(core_jar_file, std::ios::binary);
     if (UNLIKELY(!is.good())) {
@@ -62,11 +63,11 @@ void Dreamland::PreloadDexData() {
     is.close();
 }
 
-void Dreamland::Prepare() {
-    if (Android::version >= Android::kO) PreloadDexData();
+void Dreamland::Prepare(bool preload) {
+    if (Android::version >= Android::kO && preload) PreloadDexData();
 }
 
-bool Dreamland::ZygoteJavaInit(JNIEnv* env) {
+bool Dreamland::LoadDexDirectly(JNIEnv* env, bool zygote) {
     ScopedLocalRef<jclass> main_class(env);
     // 1. load core jar
     {
@@ -91,24 +92,26 @@ bool Dreamland::ZygoteJavaInit(JNIEnv* env) {
         }
     }
     // 3. call java main()
-    jmethodID main = env->GetStaticMethodID(main_class.Get(), "zygoteInit", "()I");
     if (UNLIKELY(!FindEntryMethods(env, main_class.Get(), true, true))) {
         LOGE("Failed to find some entry methods");
         return false;
     }
-    jint status = env->CallStaticIntMethod(main_class.Get(), main);
-    if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
-        return false;
-    }
-    if (UNLIKELY(status != 0)) {
-        LOGE("java zygoteInit() returned error %d", status);
-        return false;
+    if (zygote) {
+        jmethodID main = env->GetStaticMethodID(main_class.Get(), "zygoteInit", "()I");
+        jint status = env->CallStaticIntMethod(main_class.Get(), main);
+        if (UNLIKELY(JNIHelper::ExceptionCheck(env))) {
+            return false;
+        }
+        if (UNLIKELY(status != 0)) {
+            LOGE("java zygoteInit() returned error %d", status);
+            return false;
+        }
     }
     java_main_class = reinterpret_cast<jclass>(env->NewGlobalRef(main_class.Get()));
     return true;
 }
 
-bool Dreamland::ZygoteInitImpl(JNIEnv* env) {
+bool Dreamland::PrepareJavaImpl(JNIEnv* env, bool preload) {
 #ifdef DREAMLAND_DISABLE
     LOGW("Dreamland is disabled. Skipped initialize.");
     return false;
@@ -116,14 +119,14 @@ bool Dreamland::ZygoteInitImpl(JNIEnv* env) {
     CHECK_FOR_JNI(env->GetJavaVM(&java_vm) == JNI_OK, "env->GetJavaVM failed");
     WellKnownClasses::Init(env);
     DexLoader::Prepare(env);
-    if (Android::version >= Android::kO) {
+    if (Android::version >= Android::kO || !preload) {
         return Binder::Prepare(env);
     } else {
-        return ZygoteJavaInit(env);
+        return LoadDexDirectly(env, true);
     }
 }
 
-bool Dreamland::ZygoteInit(JNIEnv* env) {
+bool Dreamland::PrepareJava(JNIEnv* env, bool zygote) {
     static bool tried_to_prepare = false;
     if (UNLIKELY(instance == nullptr)) {
         if (UNLIKELY(tried_to_prepare)) {
@@ -131,8 +134,8 @@ bool Dreamland::ZygoteInit(JNIEnv* env) {
         }
         tried_to_prepare = true;
         instance = new Dreamland;
-        if (UNLIKELY(!instance->ZygoteInitImpl(env))) {
-            LOGE("Dreamland::ZygoteInitImpl() returned false.");
+        if (UNLIKELY(!instance->PrepareJavaImpl(env, zygote))) {
+            LOGE("Dreamland::PrepareJavaImpl() returned false.");
             delete instance;
             instance = nullptr;
             return false;
@@ -172,7 +175,6 @@ bool Dreamland::RegisterNatives(JNIEnv* env, jclass main_class, jobject class_lo
     return true;
 }
 
-
 JNIEnv* Dreamland::GetJNIEnv() {
     JNIEnv* env = nullptr;
     CHECK(java_vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK,
@@ -184,12 +186,18 @@ JNIEnv* Dreamland::GetJNIEnv() {
 bool Dreamland::EnsureDexLoaded(JNIEnv* env, bool app) {
     if (java_main_class == nullptr) {
         // Dex not loaded
-        return LoadDexFromMemory(env, app);
+        if (Android::version >= Android::kO)
+            return LoadDexFromMemory(env, app);
+        else
+            return LoadDexDirectly(env, false);
     }
     return true;
 }
 
 bool Dreamland::LoadDexFromMemory(JNIEnv* env, bool app) {
+    // Zygisk won't run our codes in zygote, and in that case preloading will happen in almost all processes
+    // So we delay dex data loading until the remote service confirmed she want to hook this process.
+    PreloadDexData();
     ScopedLocalRef<jclass> main_class(env);
     {
         ScopedLocalRef<jobject> class_loader(env, DexLoader::FromMemory(env, dex_data->data(), dex_data->size()));
@@ -239,7 +247,7 @@ bool Dreamland::FindEntryMethods(JNIEnv* env, jclass main_class, bool app, bool 
 
 bool Dreamland::OnAppProcessStart(JNIEnv* env, bool start_system_server) {
     if (UNLIKELY(instance == nullptr)) return false;
-    //if (UNLIKELY(!ZygoteInit(env))) return false;
+    //if (UNLIKELY(!PrepareJava(env))) return false;
 
     jobject service = nullptr;
     bool except_null = true;
@@ -270,7 +278,7 @@ bool Dreamland::OnAppProcessStart(JNIEnv* env, bool start_system_server) {
 
 bool Dreamland::OnSystemServerStart(JNIEnv* env) {
     if (UNLIKELY(instance == nullptr)) return false;
-    //if (UNLIKELY(!ZygoteInit(env))) return false;
+    //if (UNLIKELY(!PrepareJava(env))) return false;
     if (UNLIKELY(!instance->EnsureDexLoaded(env, false))) {
         LOGE("Failed to load dex data in system_server");
         return false;

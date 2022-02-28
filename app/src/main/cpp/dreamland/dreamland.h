@@ -19,9 +19,9 @@ namespace dreamland {
 
         static bool ShouldDisable();
 
-        static void Prepare();
+        static void Prepare(bool preload);
 
-        static bool ZygoteInit(JNIEnv* env);
+        static bool PrepareJava(JNIEnv* env, bool zygote);
 
         static Dreamland* GetInstance() {
             return instance;
@@ -59,9 +59,9 @@ namespace dreamland {
         JNIEnv* GetJNIEnv();
 
     private:
-        bool ZygoteJavaInit(JNIEnv* env);
+        bool LoadDexDirectly(JNIEnv* env, bool zygote);
 
-        bool ZygoteInitImpl(JNIEnv* env);
+        bool PrepareJavaImpl(JNIEnv* env, bool preload);
 
         bool RegisterNatives(JNIEnv* env, jclass main_class, jobject class_loader);
 

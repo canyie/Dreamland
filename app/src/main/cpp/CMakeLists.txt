@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.4.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(C_FLAGS "-Wall -Wextra -ffixed-x18 -fvisibility=hidden -fvisibility-inlines-hidden -fno-exceptions -fno-rtti -flto=thin -Wno-builtin-macro-redefined -D__FILE__=__FILE_NAME__")
+set(C_FLAGS "-Wall -Wextra -ffixed-x18 -fvisibility-inlines-hidden -fno-exceptions -fno-rtti -flto=thin -Wno-builtin-macro-redefined -D__FILE__=__FILE_NAME__")
 set(LINKER_FLAGS "-fuse-ld=lld -flto=thin -ffixed-x18 -Wl,--hash-style=both -Wl,--unresolved-symbols=ignore-all")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${C_FLAGS}")
@@ -21,7 +21,8 @@ add_library(riru_dreamland
         SHARED
 
         utils/well_known_classes.cpp
-        main.cpp
+        dreamland/flavor.cpp
+        dreamland/riru_flavor.cpp
         dreamland/dreamland.cpp
         dreamland/android.cpp
         dreamland/resources_hook.cpp
