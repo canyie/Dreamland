@@ -18,8 +18,8 @@ namespace dreamland {
             PineCloseElf(handle_);
         }
 
-        bool GetSymbolAddress(const char* symbol, void** out) {
-            *out = PineGetElfSymbolAddress(handle_, symbol);
+        bool GetSymbolAddress(const char* symbol, void** out, bool warn_if_missing = true) {
+            *out = PineGetElfSymbolAddress(handle_, symbol, warn_if_missing);
             return *out != nullptr;
         }
 

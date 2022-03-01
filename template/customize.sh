@@ -24,35 +24,45 @@ else
 fi
 
 MAGISK_TMP=$(magisk --path) || MAGISK_TMP="/sbin"
-MAGISK_CURRENT_RIRU_MODULE_PATH=$MAGISK_TMP/.magisk/modules/riru-core
 
-if [ -f $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh ]; then
-  # Riru V24+, api version is provided in util_functions.sh
-  # I don't like this, but I can only follow this change
-  RIRU_PATH=$MAGISK_CURRENT_RIRU_MODULE_PATH
-  ui_print "- Load $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh"
-  # shellcheck disable=SC1090
-  . $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh
-
-  # Pre Riru 25, as a old module
-  if [ "$RIRU_API" -lt 25 ]; then
-    ui_print "- Riru API version $RIRU_API is lower than v25"
-    RIRU_PATH=$RIRU_NEW_PATH
-  fi
-elif [ -f "$RIRU_OLD_PATH/api_version.new" ] || [ -f "$RIRU_OLD_PATH/api_version" ]; then
-  RIRU_PATH="$RIRU_OLD_PATH"
-elif [ -f "$RIRU_NEW_PATH/api_version.new" ] || [ -f "$RIRU_NEW_PATH/api_version" ]; then
-  RIRU_PATH="$RIRU_NEW_PATH"
+if [ "$ZYGISK_ENABLED" = "1" ]; then
+  [ "$MAGISK_VER_CODE" -lt 24000 ] && abort "! $ERR_ZYGISK_REQUIRES_24"
+  FLAVOR="zygisk"
+  ui_print "- $ALERT_ZYGISK_FLAVOR"
 else
-  abort "! $ERR_RIRU_NOT_INSTALLED"
+  ui_print "- $ALERT_RIRU_FLAVOR"
+  MAGISK_CURRENT_RIRU_MODULE_PATH=$MAGISK_TMP/.magisk/modules/riru-core
+
+  if [ -f $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh ]; then
+    # Riru V24+, api version is provided in util_functions.sh
+    # I don't like this, but I can only follow this change
+    RIRU_PATH=$MAGISK_CURRENT_RIRU_MODULE_PATH
+    ui_print "- Load $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh"
+    # shellcheck disable=SC1090
+    . $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh
+
+    # Pre Riru 25, as a old module
+    if [ "$RIRU_API" -lt 25 ]; then
+      ui_print "- Riru API version $RIRU_API is lower than v25"
+      RIRU_PATH=$RIRU_NEW_PATH
+    fi
+  elif [ -f "$RIRU_OLD_PATH/api_version.new" ] || [ -f "$RIRU_OLD_PATH/api_version" ]; then
+    RIRU_PATH="$RIRU_OLD_PATH"
+  elif [ -f "$RIRU_NEW_PATH/api_version.new" ] || [ -f "$RIRU_NEW_PATH/api_version" ]; then
+    RIRU_PATH="$RIRU_NEW_PATH"
+  else
+    abort "! $ERR_NO_FLAVOR"
+  fi
+  RIRU_MODULE_PATH="$RIRU_PATH/modules/$RIRU_MODULE_ID"
+
+  [ "$RIRU_API" -ne 0 ] || RIRU_API=$(cat "$RIRU_PATH/api_version.new") || RIRU_API=$(cat "$RIRU_PATH/api_version")
+  ui_print "- $ALERT_RIRU_API $RIRU_API"
+
+  RIRU_MIN_API=$(grep_prop api "$TMPDIR/module.prop")
+  [ "$RIRU_API" -ge "$RIRU_MIN_API" ] || abort "! $ERR_UNSUPPORTED_RIRU_API $RIRU_API"
+
+  FLAVOR="riru"
 fi
-RIRU_MODULE_PATH="$RIRU_PATH/modules/$RIRU_MODULE_ID"
-
-[ "$RIRU_API" -ne 0 ] || RIRU_API=$(cat "$RIRU_PATH/api_version.new") || RIRU_API=$(cat "$RIRU_PATH/api_version")
-ui_print "- $ALERT_RIRU_API $RIRU_API"
-
-RIRU_MIN_API=$(grep_prop api "$TMPDIR/module.prop")
-[ "$RIRU_API" -ge "$RIRU_MIN_API" ] || abort "! $ERR_UNSUPPORTED_RIRU_API $RIRU_API"
 
 if [ "${BOOTMODE}" = "true" ]; then
   if [ "$(pm path 'top.canyie.dreamland.manager')" = "" ]; then
@@ -76,20 +86,29 @@ if [ "$IS64BIT" = "false" ]; then
   rm -rf "$MODPATH/riru/lib64"
 fi
 
-ui_print "- $ALERT_EXTRACT_RIRU_FILES"
-if [ "$RIRU_API" -lt 25 ]; then
-  ui_print "- $ALERT_OLD_RIRU $RIRU_API"
-  mv -f "$MODPATH/riru/lib" "$MODPATH/system/"
-  [ -d "$MODPATH/riru/lib64" ] && mv -f "$MODPATH/riru/lib64" "$MODPATH/system/" 2>&1
-  rm -rf "$MODPATH/riru"
-  [ -d $RIRU_MODULE_PATH ] || mkdir -p $RIRU_MODULE_PATH || abort "! Can't create $RIRU_MODULE_PATH: $?"
-  cp -f "$MODPATH/module.prop" "$RIRU_MODULE_PATH/module.prop"
+ui_print "- $ALERT_FLAVOR_SPECIFC"
+if [ "$FLAVOR" = "riru" ]; then
+  if [ "$RIRU_API" -lt 25 ]; then
+    ui_print "- $ALERT_OLD_RIRU $RIRU_API"
+    mv -f "$MODPATH/riru/lib" "$MODPATH/system/"
+    [ -d "$MODPATH/riru/lib64" ] && mv -f "$MODPATH/riru/lib64" "$MODPATH/system/" 2>&1
+    rm -rf "$MODPATH/riru"
+    [ -d $RIRU_MODULE_PATH ] || mkdir -p $RIRU_MODULE_PATH || abort "! Can't create $RIRU_MODULE_PATH: $?"
+    cp -f "$MODPATH/module.prop" "$RIRU_MODULE_PATH/module.prop"
+  else
+    # Riru v25+, user may upgrade from old module without uninstall
+    # Remove the Riru v22's module path to make sure riru knews we're a new module
+    RIRU_22_MODULE_PATH="$RIRU_NEW_PATH/modules/$RIRU_MODULE_ID"
+    ui_print "- $ALERT_REMOVE_OLD_FOR_NEW_RIRU"
+    rm -rf "$RIRU_22_MODULE_PATH"
+  fi
 else
-  # Riru v25+, maybe the user upgrade from old module without uninstall
-  # Remove the Riru v22's module path to make sure riru knews we're a new module
-  RIRU_22_MODULE_PATH="$RIRU_NEW_PATH/modules/$RIRU_MODULE_ID"
-  ui_print "- $ALERT_REMOVE_OLD_FOR_NEW_RIRU"
-  rm -rf "$RIRU_22_MODULE_PATH"
+  mkdir -p "$MODPATH/zygisk"
+  mv -f "$MODPATH/riru/lib/libriru_dreamland.so" "$MODPATH/zygisk/armeabi-v7a.so" || abort "! $ERR_FLAVOR_SPECIFC"
+  [ -f "$MODPATH/riru/lib64/libriru_dreamland.so" ] && (mv -f "$MODPATH/riru/lib64/libriru_dreamland.so" "$MODPATH/zygisk/arm64-v8a.so" || abort "! $ERR_FLAVOR_SPECIFC")
+
+  # Magisk won't load Riru modules if Zygisk enabled
+  rm -rf "$MODPATH/riru" || abort "! $ERR_FLAVOR_SPECIFC"
 fi
 
 ui_print "- $ALERT_PREPARE_LOCAL_DIR"

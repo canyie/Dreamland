@@ -23,6 +23,7 @@ add_library(riru_dreamland
         utils/well_known_classes.cpp
         dreamland/flavor.cpp
         dreamland/riru_flavor.cpp
+        dreamland/zygisk_flavor.cpp
         dreamland/dreamland.cpp
         dreamland/android.cpp
         dreamland/resources_hook.cpp

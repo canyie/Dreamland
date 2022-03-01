@@ -14,7 +14,7 @@ extern "C" {
     void PineSetAndroidVersion(int version);
     void* PineOpenElf(const char* elf);
     void PineCloseElf(void* handle);
-    void* PineGetElfSymbolAddress(void* handle, const char* symbol);
+    void* PineGetElfSymbolAddress(void* handle, const char* symbol, bool warn_if_missing);
     bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* symbol, void* replace);
     void PineNativeInlineHookFuncNoBackup(void* target, void* replace);
 };
