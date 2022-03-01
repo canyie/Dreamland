@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'dev.rikka.tools.refine.gradle-plugin'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
