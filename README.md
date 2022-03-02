@@ -4,7 +4,7 @@
 
 ## Introduction
 Dreamland is a Xposed framework implementation, you can use it to use Xposed modules.
-- Supports Android 7.0~**11**
+- Supports Android 7.0~**12**
 - Low invasiveness
 - For hooking third apps, only requires restart the target app, not the device
 - Strictly restrict modules, you can choose which apps need to load which modules
@@ -16,8 +16,8 @@ Dreamland is a Xposed framework implementation, you can use it to use Xposed mod
 
 ## Install
 1. Install Magisk (the latest version is recommended).
-2. Install [Riru](https://github.com/RikkaApps/Riru) from Magisk Repo.
-3. Download and install Dreamland in Magisk Manager or custom recovery.
+2. Install [Riru](https://github.com/RikkaApps/Riru) or turn on Zygisk in Magisk app and reboot.
+3. Download and install Dreamland in Magisk app. Installing from custom recovery is NO longer supported.
 4. Install [Dreamland Manager](https://github.com/canyie/DreamlandManager/releases)
 5. Reboot. (For Magisk < 21006, you have to reboot twice.)
 
@@ -35,6 +35,7 @@ Dreamland is a Xposed framework implementation, you can use it to use Xposed mod
 
 ## Credits
 - [Xposed](https://github.com/rovo89/Xposed): the original Xposed framework
+- [EdXposed](https://github.com/ElderDrivers/EdXposed)
 - [LSPosed](https://github.com/LSPosed/LSPosed): another modern Xposed framework
 - [Magisk](https://github.com/topjohnwu/Magisk): makes all these possible
 - [Riru](https://github.com/RikkaApps/Riru): provides a way to inject codes into zygote process

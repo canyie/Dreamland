@@ -23,9 +23,19 @@ else
   ui_print "- $ALERT_ANDROID_API $API"
 fi
 
+if [ "$BOOTMODE" = "true" ]; then
+  ui_print "- $ALERT_BOOTMODE"
+else
+  ui_print "! $ERR_FLASH_FROM_RECOVERY_1"
+  ui_print "! $ERR_FLASH_FROM_RECOVERY_2"
+  abort "! $ERR_FLASH_FROM_RECOVERY_3"
+fi
+
 MAGISK_TMP=$(magisk --path) || MAGISK_TMP="/sbin"
 
-if [ "$ZYGISK_ENABLED" = "1" ]; then
+# "ZYGISK_ENABLED" is not an API but exported unexpectedly when installing from Magisk app
+# Magisk doesn't provide an API to detect if Zygisk is working, so the only way is...
+if [ "$ZYGISK_ENABLED" = "1" ] || [ -d "$MAGISK_TMP/.magisk/zygisk" ]; then
   [ "$MAGISK_VER_CODE" -lt 24000 ] && abort "! $ERR_ZYGISK_REQUIRES_24"
   FLAVOR="zygisk"
   ui_print "- $ALERT_ZYGISK_FLAVOR"
