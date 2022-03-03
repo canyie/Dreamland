@@ -28,8 +28,8 @@ ext {
     buildToolsVersion = '32.0.0'
     ndkVersion = "23.1.7779620"
     minSdkVersion = 24
-    targetSdkVersion = 30 // useless for magisk module
-    versionCode = 2100
+    targetSdkVersion = 32 // useless for magisk module
+    versionCode = 2101
     versionName = '2.1'
     minMagiskVersion = 19000
     riruApiVersion = 5 // For Riru v21
