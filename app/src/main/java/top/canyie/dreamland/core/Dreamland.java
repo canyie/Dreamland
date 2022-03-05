@@ -215,12 +215,12 @@ public final class Dreamland {
                 }
 
                 synchronized (param.thisObject) {
-                    List<WeakReference<?>> resourceReferences;
+                    List<Object> resourceReferences;
                     if (activityToken != null) {
                         Object activityResources = callMethod(param.thisObject, "getOrCreateActivityResourcesStructLocked", activityToken);
-                        resourceReferences = (List<WeakReference<?>>) getObjectField(activityResources, "activityResources");
+                        resourceReferences = (List<Object>) getObjectField(activityResources, "activityResources");
                     } else {
-                        resourceReferences = (List<WeakReference<?>>) getObjectField(param.thisObject, "mResourceReferences");
+                        resourceReferences = (List<Object>) getObjectField(param.thisObject, "mResourceReferences");
                     }
 
                     if (activityToken == null || classActivityRes == null) {
@@ -229,7 +229,7 @@ public final class Dreamland {
                         // Android S createResourcesForActivity(), ActivityResouces#activityResources is List<ActivityResource>
                         var activityRes = XposedHelpers.newInstance(classActivityRes);
                         XposedHelpers.setObjectField(activityRes, "resources", new WeakReference<>(newRes));
-                        resourceReferences.add(new WeakReference<>(activityRes));
+                        resourceReferences.add(activityRes);
                     }
                 }
             }
