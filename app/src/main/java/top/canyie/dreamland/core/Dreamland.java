@@ -191,14 +191,21 @@ public final class Dreamland {
 
         // Dreamland: only supports android 7.0+
         final Class<?> classGTLR = Class.forName("android.app.ResourcesManager");
+        final Class<?> classActivityRes = XposedHelpers.findClassIfExists("android.app.ResourcesManager$ActivityResource",
+                classGTLR.getClassLoader());
         final ThreadLocal<Object> latestResKey = new ThreadLocal<>();
-        final String createResources = Build.VERSION.SDK_INT < 30 ? "getOrCreateResources" : "createResources";
 
-        hookAllMethods(classGTLR, createResources, new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+        var hook = new XC_MethodHook() {
+            @Override protected void afterHookedMethod(MethodHookParam param) {
                 // At least on OnePlus 5, the method has an additional parameter compared to AOSP.
-                final int activityTokenIdx = getParameterIndexByType(param.method, IBinder.class);
+                Object activityToken;
+                try {
+                    final int activityTokenIdx = getParameterIndexByType(param.method, IBinder.class);
+                    activityToken = param.args[activityTokenIdx];
+                } catch (NoSuchMethodError ignored) {
+                    // Android S createResources()
+                    activityToken = null;
+                }
                 final int resKeyIdx = getParameterIndexByType(param.method, ResourcesKey.class);
 
                 String resDir = ((ResourcesKey) param.args[resKeyIdx]).mResDir;
@@ -207,19 +214,34 @@ public final class Dreamland {
                     return;
                 }
 
-                Object activityToken = param.args[activityTokenIdx];
                 synchronized (param.thisObject) {
-                    List<WeakReference<Resources>> resourceReferences;
+                    List<WeakReference<?>> resourceReferences;
                     if (activityToken != null) {
                         Object activityResources = callMethod(param.thisObject, "getOrCreateActivityResourcesStructLocked", activityToken);
-                        resourceReferences = (List<WeakReference<Resources>>) getObjectField(activityResources, "activityResources");
+                        resourceReferences = (List<WeakReference<?>>) getObjectField(activityResources, "activityResources");
                     } else {
-                        resourceReferences = (List<WeakReference<Resources>>) getObjectField(param.thisObject, "mResourceReferences");
+                        resourceReferences = (List<WeakReference<?>>) getObjectField(param.thisObject, "mResourceReferences");
                     }
-                    resourceReferences.add(new WeakReference(newRes));
+
+                    if (activityToken == null || classActivityRes == null) {
+                        resourceReferences.add(new WeakReference<>(newRes));
+                    } else {
+                        // Android S createResourcesForActivity(), ActivityResouces#activityResources is List<ActivityResource>
+                        var activityRes = XposedHelpers.newInstance(classActivityRes);
+                        XposedHelpers.setObjectField(activityRes, "resources", new WeakReference<>(newRes));
+                        resourceReferences.add(new WeakReference<>(activityRes));
+                    }
                 }
             }
-        });
+        };
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            hookAllMethods(classGTLR, "createResources", hook);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                hookAllMethods(classGTLR, "createResourcesForActivity", hook);
+        } else  {
+            hookAllMethods(classGTLR, "getOrCreateResources", hook);
+        }
 
         // Replace TypedArrays with XTypedArrays
         hookAllConstructors(TypedArray.class, new XC_MethodHook() {
