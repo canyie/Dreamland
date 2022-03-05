@@ -1,6 +1,8 @@
 package android.content.res;
 
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.util.TypedValue;
 
 import dev.rikka.tools.refine.RefineAs;
 
@@ -88,6 +90,18 @@ public class TypedArrayHidden {
 	}
 
 	public CharSequence[] getTextArray(int index) {
+		throw new UnsupportedOperationException("Stub!");
+	}
+
+	public Typeface getFont(int index) {
+		throw new UnsupportedOperationException("Stub!");
+	}
+
+	public boolean getValue(int index, TypedValue outValue) {
+		throw new UnsupportedOperationException("Stub!");
+	}
+
+	public TypedValue peekValue(int index) {
 		throw new UnsupportedOperationException("Stub!");
 	}
 

@@ -5,8 +5,10 @@ import android.content.pm.PackageParser;
 import android.content.pm.PackageParser.PackageParserException;
 import android.graphics.Color;
 import android.graphics.Movie;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.text.Html;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -30,6 +32,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedBridge.CopyOnWriteSortedSet;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LayoutInflated;
 import de.robv.android.xposed.callbacks.XC_LayoutInflated.LayoutInflatedParam;
 import de.robv.android.xposed.callbacks.XCallback;
@@ -42,6 +45,8 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static de.robv.android.xposed.XposedHelpers.getLongField;
 import static de.robv.android.xposed.XposedHelpers.getObjectField;
 import static de.robv.android.xposed.XposedHelpers.incrementMethodDepth;
+
+import androidx.annotation.RequiresApi;
 
 /**
  * {@link Resources} subclass that allows replacing individual resources.
@@ -914,6 +919,38 @@ public class XResources extends XResourcesSuperClass {
 //		}
 //	}
 
+	// Dreamland added: getFloat() hook
+	/** @hide */
+	@RequiresApi(Build.VERSION_CODES.Q)
+	@Override
+	public float getFloat(int id) {
+		Object replacement = getReplacement(id);
+		if (replacement instanceof Float) {
+			return (Float) replacement;
+		} else if (replacement instanceof XResForwarder) {
+			Resources repRes = ((XResForwarder) replacement).getResources();
+			int repId = ((XResForwarder) replacement).getId();
+			return repRes.getFloat(repId);
+		}
+		return super.getFloat(id);
+	}
+
+	// Dreamland added: getFont() hook
+	/** @hide */
+	@RequiresApi(Build.VERSION_CODES.O)
+	@Override
+	public Typeface getFont(int id) {
+		Object replacement = getReplacement(id);
+		if (replacement instanceof Typeface) {
+			return (Typeface) replacement;
+		} else if (replacement instanceof XResForwarder) {
+			Resources repRes = ((XResForwarder) replacement).getResources();
+			int repId = ((XResForwarder) replacement).getId();
+			return repRes.getFont(repId);
+		}
+		return super.getFont(id);
+	}
+
 	/** @hide */
 	@Override
 	public float getFraction(int id, int base, int pbase) {
@@ -1134,6 +1171,40 @@ public class XResources extends XResourcesSuperClass {
 			return result;
 		}
 		return super.getXml(id);
+	}
+
+	// Dreamland added: getValue() hook
+	/** @hide */
+	@Override
+	public void getValue(int id, TypedValue outValue, boolean resolveRefs) throws NotFoundException {
+		Object replacement = getReplacement(id);
+		if (replacement instanceof XResForwarder) {
+			Resources repRes = ((XResForwarder) replacement).getResources();
+			int repId = ((XResForwarder) replacement).getId();
+			repRes.getValue(repId, outValue, resolveRefs);
+		} else {
+			if (replacement != null) {
+				XposedBridge.log("Replacement of resource ID #0x" + Integer.toHexString(id) + " escaped because of deprecated replacement. Please use XResForwarder instead.");
+			}
+			super.getValue(id, outValue, resolveRefs);
+		}
+	}
+
+	// Dreamland added: getValueForDensity() hook
+	/** @hide */
+	@Override
+	public void getValueForDensity(int id, int density, TypedValue outValue, boolean resolveRefs) throws NotFoundException {
+		Object replacement = getReplacement(id);
+		if (replacement instanceof XResForwarder) {
+			Resources repRes = ((XResForwarder) replacement).getResources();
+			int repId = ((XResForwarder) replacement).getId();
+			repRes.getValueForDensity(repId, density, outValue, resolveRefs);
+		} else {
+			if (replacement != null) {
+				XposedBridge.log("Replacement of resource ID #0x" + Integer.toHexString(id) + " escaped because of deprecated replacement. Please use XResForwarder instead.");
+			}
+			super.getValueForDensity(id, density, outValue, resolveRefs);
+		}
 	}
 
 	private static boolean isXmlCached(Resources res, int id) {
@@ -1493,6 +1564,61 @@ public class XResources extends XResourcesSuperClass {
 				return repRes.getTextArray(repId);
 			}
 			return super.getTextArray(index);
+		}
+
+		// Dreamland added: getFont() hook
+		@RequiresApi(Build.VERSION_CODES.O)
+		@Override
+		public Typeface getFont(int index) {
+			Object replacement = ((XResources) getResources()).getReplacement(getResourceId(index, 0));
+			if (replacement instanceof Typeface) {
+				return (Typeface) replacement;
+			} else if (replacement instanceof XResForwarder) {
+				Resources repRes = ((XResForwarder) replacement).getResources();
+				int repId = ((XResForwarder) replacement).getId();
+				return repRes.getFont(repId);
+			}
+			return super.getFont(index);
+		}
+
+		// Dreamland added: getValue() hook
+		@Override
+		public boolean getValue(int index, TypedValue outValue) {
+			var id = getResourceId(index, 0);
+			Object replacement = ((XResources) getResources()).getReplacement(id);
+			if (replacement instanceof XResForwarder) {
+				Resources repRes = ((XResForwarder) replacement).getResources();
+				int repId = ((XResForwarder) replacement).getId();
+				repRes.getValue(repId, outValue, true);
+				return outValue.type != TypedValue.TYPE_NULL;
+			} else {
+				if (replacement != null) {
+					XposedBridge.log("Replacement of resource ID #0x" + Integer.toHexString(id) + " escaped because of deprecated replacement. Please use XResForwarder instead.");
+				}
+				return super.getValue(index, outValue);
+			}
+		}
+
+		// Dreamland added: peekValue() hook
+		@Override
+		public TypedValue peekValue(int index) {
+			var id = getResourceId(index, 0);
+			Object replacement = ((XResources) getResources()).getReplacement(id);
+			if (replacement instanceof XResForwarder) {
+				if (XposedHelpers.getBooleanField(this, "mRecycled")) {
+					throw new RuntimeException("Cannot make calls to a recycled instance!");
+				}
+				final TypedValue value = (TypedValue) getObjectField(this, "mValue");
+				Resources repRes = ((XResForwarder) replacement).getResources();
+				int repId = ((XResForwarder) replacement).getId();
+				repRes.getValue(repId, value, true);
+				return value;
+			} else {
+				if (replacement != null) {
+					XposedBridge.log("Replacement of resource ID #0x" + Integer.toHexString(id) + " escaped because of deprecated replacement. Please use XResForwarder instead.");
+				}
+				return super.peekValue(index);
+			}
 		}
 	}
 
