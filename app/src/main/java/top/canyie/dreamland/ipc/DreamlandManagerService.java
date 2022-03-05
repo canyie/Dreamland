@@ -70,7 +70,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     };
 
-    private boolean cannotHookSystemServer;
+    private boolean cannotHookSystemServer = true;
 
     private DreamlandManagerService() {
         instance = this;
@@ -111,8 +111,8 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return Arrays.stream(apks).filter(ModuleManager::isModuleValid).findFirst().orElse(null);
     }
 
-    public void setCannotHookSystemServer() {
-        cannotHookSystemServer = true;
+    public void onSystemServerHookCalled() {
+        cannotHookSystemServer = false;
     }
 
     public boolean hookLoadPackageInSystemServer() {

@@ -257,6 +257,7 @@ public final class Main {
 
                 Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
                     @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
+                        dms.onSystemServerHookCalled();
                         Dreamland.loadedPackages.add(AppConstants.ANDROID);
                         String[] modules = dms.getEnabledModulesForSystemServer();
                         if (modules != null && modules.length != 0) {
@@ -287,7 +288,6 @@ public final class Main {
                 });
             } catch (Throwable e) {
                 Log.e(TAG, "Cannot hook methods in system_server. Maybe the SEPolicy patch rules not loaded properly by Magisk.", e);
-                dms.setCannotHookSystemServer();
             }
         } catch (Throwable e) {
             try {
