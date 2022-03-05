@@ -36,6 +36,7 @@ import top.canyie.dreamland.utils.reflect.Reflection;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
 import mirror.android.app.ActivityThread;
@@ -244,7 +245,10 @@ public final class Main {
             // We want to know if sepolicy patch rules is loaded properly,
             // so we hook the method even if no modules need to hook system server.
             try {
+                // ActivityThread#systemMain() is inlined in Android T
+                // So we also hook ZygoteInit#handleSystemServerProcess()
                 // Call chain:
+                //  ZygoteInit.handleSystemServerProcess()
                 //  SystemServer.run()
                 //    -> SystemServer.createSystemContext()
                 //      -> ActivityThread.systemMain()
@@ -254,9 +258,12 @@ public final class Main {
                 //            -> mSystemContext = ContextImpl.createSystemContext()
                 //            -> return mSystemContext
                 //    -> SystemServer.startBootstrapServices()
-
-                Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), new MethodHook() {
+                final var called = new boolean[] { false };
+                var hook = new MethodHook() {
                     @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
+                        // Both systemMain() and handleSystemServerProcess() are using this callback
+                        if (called[0]) return;
+                        called[0] = true;
                         dms.onSystemServerHookCalled();
                         Dreamland.loadedPackages.add(AppConstants.ANDROID);
                         String[] modules = dms.getEnabledModulesForSystemServer();
@@ -285,7 +292,13 @@ public final class Main {
                             Log.i(TAG, "No need to hook loadPackage in system server");
                         }
                     }
-                });
+                };
+
+                Pine.hook(android.app.ActivityThread.class.getDeclaredMethod("systemMain"), hook);
+                for (Method method : Class.forName("com.android.internal.os.ZygoteInit").getDeclaredMethods()) {
+                    if ("handleSystemServerProcess".equals(method.getName()))
+                        Pine.hook(method, hook);
+                }
             } catch (Throwable e) {
                 Log.e(TAG, "Cannot hook methods in system_server. Maybe the SEPolicy patch rules not loaded properly by Magisk.", e);
             }
