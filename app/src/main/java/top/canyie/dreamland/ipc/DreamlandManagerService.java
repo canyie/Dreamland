@@ -14,6 +14,7 @@ import top.canyie.dreamland.core.AppManager;
 import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.core.ModuleManager;
 import top.canyie.dreamland.utils.AppConstants;
+import top.canyie.dreamland.utils.BuildUtils;
 import top.canyie.dreamland.utils.DLog;
 
 import java.io.File;
@@ -101,7 +102,9 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     }
 
     public String getModulePath(String packageName) throws RemoteException {
-        ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0, UserHandleHidden.getCallingUserId());
+        ApplicationInfo appInfo = BuildUtils.isAtLeastT()
+                ? pm.getApplicationInfo(packageName, 0L, UserHandleHidden.getCallingUserId())
+                : pm.getApplicationInfo(packageName, (int) 0, UserHandleHidden.getCallingUserId());
         if (appInfo == null) return null;
         String[] splitSourceDirs = appInfo.splitSourceDirs;
         if (splitSourceDirs == null) return appInfo.sourceDir;
@@ -181,7 +184,11 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         mEnabledAppCache = null;
 
         if (AppConstants.ANDROID.equals(packageName)) return; // system server itself
-        if (pm.getPackageUid(packageName, 0, UserHandleHidden.getCallingUserId()) == Process.SYSTEM_UID) {
+        int userId = UserHandleHidden.getCallingUserId();
+        int uid = BuildUtils.isAtLeastT()
+                ? pm.getPackageUid(packageName, 0L, userId)
+                : pm.getPackageUid(packageName, (int) 0, userId);
+        if (uid == Process.SYSTEM_UID) {
             if (enabled) {
                 if (mSkipSystemServer) {
                     mSkipSystemServer = false;
