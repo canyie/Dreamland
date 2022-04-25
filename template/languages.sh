@@ -39,6 +39,7 @@ if [ "$SIMPLIFIED_CHINESE" = "true" ]; then
   ERR_COPY_PROP_TO_RIRU_MODULE_PATH="复制module.prop失败："
   ERR_PREPARE_LOCAL_DIR="无法创建配置目录："
 
+  WARN_OLD_ANDROID_API="未测试，可能不支持的 Android API "
   WARN_OLD_MANAGER_1="您安装了已弃用的旧版管理器"
   WARN_OLD_MANAGER_2="它与您正在安装的梦境框架不兼容"
   WARN_MANAGER_NOT_INSTALLED_1="梦境管理器未安装"
@@ -78,6 +79,7 @@ else
   ERR_COPY_PROP_TO_RIRU_MODULE_PATH="Can't copy module.prop to the riru module path:"
   ERR_PREPARE_LOCAL_DIR="Can't create the local directory:"
 
+  WARN_OLD_ANDROID_API="Dreamland framework is not completely tested with your Android API "
   WARN_OLD_MANAGER_1="Detected deprecated dreamland manager"
   WARN_OLD_MANAGER_2="It is not compatible with current framework version"
   WARN_MANAGER_NOT_INSTALLED_1="Dreamland Manager not found"

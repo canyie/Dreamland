@@ -17,10 +17,11 @@ else
   ui_print "- $ALERT_ARCH $ARCH"
 fi
 
-if [ "$API" -lt 24 ]; then
+if [ "$API" -lt 21 ]; then
   abort "! $ERR_UNSUPPORTED_ANDROID_API $API"
 else
   ui_print "- $ALERT_ANDROID_API $API"
+  [ "$API" -lt 24 ] && ui_print "- $WARN_OLD_ANDROID_API $API"
 fi
 
 if [ "$BOOTMODE" = "true" ]; then

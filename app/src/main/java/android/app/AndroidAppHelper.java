@@ -4,6 +4,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.res.CompatibilityInfo;
 import android.content.res.Resources;
+import android.os.Build;
 import android.view.Display;
 
 import androidx.annotation.Keep;
@@ -15,6 +16,8 @@ import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 
 import static de.robv.android.xposed.XposedHelpers.findClass;
+import static de.robv.android.xposed.XposedHelpers.findFieldIfExists;
+import static de.robv.android.xposed.XposedHelpers.findMethodExactIfExists;
 import static de.robv.android.xposed.XposedHelpers.getObjectField;
 import static de.robv.android.xposed.XposedHelpers.newInstance;
 import static de.robv.android.xposed.XposedHelpers.setFloatField;
@@ -30,9 +33,8 @@ import static de.robv.android.xposed.XposedHelpers.setFloatField;
 
 	private static final Class<?> CLASS_RESOURCES_KEY;
 
-	// Dreamland changed: remove unused field for sdk 24: HAS_IS_THEMEABLE and HAS_THEME_CONFIG_PARAMETER
-//	private static final boolean HAS_IS_THEMEABLE;
-//	private static final boolean HAS_THEME_CONFIG_PARAMETER;
+	private static final boolean HAS_IS_THEMEABLE;
+	private static final boolean HAS_THEME_CONFIG_PARAMETER;
 
 	static {
 		// Dreamland changed: remove unreachable condition
@@ -42,25 +44,23 @@ import static de.robv.android.xposed.XposedHelpers.setFloatField;
 
 		CLASS_RESOURCES_KEY = findClass("android.content.res.ResourcesKey", null);
 
-//		HAS_IS_THEMEABLE = findFieldIfExists(CLASS_RESOURCES_KEY, "mIsThemeable") != null;
-//		HAS_THEME_CONFIG_PARAMETER = HAS_IS_THEMEABLE && Build.VERSION.SDK_INT >= 21
-//				&& findMethodExactIfExists("android.app.ResourcesManager", null, "getThemeConfig") != null;
+		HAS_IS_THEMEABLE = findFieldIfExists(CLASS_RESOURCES_KEY, "mIsThemeable") != null;
+		HAS_THEME_CONFIG_PARAMETER = HAS_IS_THEMEABLE
+				&& findMethodExactIfExists("android.app.ResourcesManager", null, "getThemeConfig") != null;
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static Map<Object, WeakReference> getResourcesMap(ActivityThread activityThread) {
 		// Dreamland changed: remove unreachable condition
-//		if (Build.VERSION.SDK_INT >= 24) {
-//			Object resourcesManager = getObjectField(activityThread, "mResourcesManager");
-//			return (Map) getObjectField(resourcesManager, "mResourceImpls");
+		Object resourcesManager = getObjectField(activityThread, "mResourcesManager");
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			return (Map) getObjectField(resourcesManager, "mResourceImpls");
+		} else {
 //		} else if (Build.VERSION.SDK_INT >= 19) {
-//			Object resourcesManager = getObjectField(activityThread, "mResourcesManager");
-//			return (Map) getObjectField(resourcesManager, "mActiveResources");
+			return (Map) getObjectField(resourcesManager, "mActiveResources");
 //		} else {
 //			return (Map) getObjectField(activityThread, "mActiveResources");
-//		}
-		Object resourcesManager = getObjectField(activityThread, "mResourcesManager");
-		return (Map) getObjectField(resourcesManager, "mResourceImpls");
+		}
 	}
 
 	// Dreamland changed: remove unreachable methods
@@ -77,37 +77,39 @@ import static de.robv.android.xposed.XposedHelpers.setFloatField;
 //		}
 //	}
 //
-//	/* For SDK 17 & 18 & 23 */
-//	private static Object createResourcesKey(String resDir, int displayId, Configuration overrideConfiguration, float scale) {
-//		try {
-//			if (HAS_THEME_CONFIG_PARAMETER)
-//				return newInstance(CLASS_RESOURCES_KEY, resDir, displayId, overrideConfiguration, scale, false, null);
-//			else if (HAS_IS_THEMEABLE)
-//				return newInstance(CLASS_RESOURCES_KEY, resDir, displayId, overrideConfiguration, scale, false);
-//			else
-//				return newInstance(CLASS_RESOURCES_KEY, resDir, displayId, overrideConfiguration, scale);
-//		} catch (Throwable t) {
-//			XposedBridge.log(t);
-//			return null;
-//		}
-//	}
-//
-//	/* For SDK 19 - 22 */
-//	private static Object createResourcesKey(String resDir, int displayId, Configuration overrideConfiguration, float scale, IBinder token) {
-//		try {
-//			if (HAS_THEME_CONFIG_PARAMETER)
-//				return newInstance(CLASS_RESOURCES_KEY, resDir, displayId, overrideConfiguration, scale, false, null, token);
-//			else if (HAS_IS_THEMEABLE)
-//				return newInstance(CLASS_RESOURCES_KEY, resDir, displayId, overrideConfiguration, scale, false, token);
-//			else
-//				return newInstance(CLASS_RESOURCES_KEY, resDir, displayId, overrideConfiguration, scale, token);
-//		} catch (Throwable t) {
-//			XposedBridge.log(t);
-//			return null;
-//		}
-//	}
+	/* For SDK 17 & 18 & 23 */
+	// Dreamland changed: inline arguments
+	private static Object createResourcesKeyM(String resDir, float scale) {
+		try {
+			if (HAS_THEME_CONFIG_PARAMETER)
+				return newInstance(CLASS_RESOURCES_KEY, resDir, Display.DEFAULT_DISPLAY, null, scale, false, null);
+			else if (HAS_IS_THEMEABLE)
+				return newInstance(CLASS_RESOURCES_KEY, resDir, Display.DEFAULT_DISPLAY, null, scale, false);
+			else
+				return newInstance(CLASS_RESOURCES_KEY, resDir, Display.DEFAULT_DISPLAY, null, scale);
+		} catch (Throwable t) {
+			XposedBridge.log(t);
+			return null;
+		}
+	}
 
-	// Dreamland changed: createResourcesKey be inlined now
+	/* For SDK 19 - 22 */
+	// Dreamland changed: inline arguments
+	private static Object createResourcesKeyL(String resDir, float scale) {
+		try {
+			if (HAS_THEME_CONFIG_PARAMETER)
+				return newInstance(CLASS_RESOURCES_KEY, resDir, Display.DEFAULT_DISPLAY, null, scale, false, null, null);
+			else if (HAS_IS_THEMEABLE)
+				return newInstance(CLASS_RESOURCES_KEY, resDir, Display.DEFAULT_DISPLAY, null, scale, false, null);
+			else
+				return newInstance(CLASS_RESOURCES_KEY, resDir, Display.DEFAULT_DISPLAY, null, scale, null);
+		} catch (Throwable t) {
+			XposedBridge.log(t);
+			return null;
+		}
+	}
+
+	// Dreamland changed: createResourcesKey is inlined for API 24+
 //	/* For SDK 24+ */
 //	private static Object createResourcesKey(String resDir, String[] splitResDirs, String[] overlayDirs, String[] libDirs, int displayId, Configuration overrideConfiguration, CompatibilityInfo compatInfo) {
 //		try {
@@ -131,32 +133,21 @@ import static de.robv.android.xposed.XposedHelpers.setFloatField;
 		}
 
 		// Dreamland changed: remove unreachable conditions
-//		Object resourcesKey;
-//		if (Build.VERSION.SDK_INT >= 24) {
-//			CompatibilityInfo compatInfo = (CompatibilityInfo) newInstance(CompatibilityInfo.class);
-//			setFloatField(compatInfo, "applicationScale", resources.hashCode());
-//			resourcesKey = createResourcesKey(resDir, null, null, null, Display.DEFAULT_DISPLAY, null, compatInfo);
-//		} else if (Build.VERSION.SDK_INT == 23) {
-//			resourcesKey = createResourcesKey(resDir, Display.DEFAULT_DISPLAY, null, resources.hashCode());
+		Object resourcesKey;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			CompatibilityInfo compatInfo = (CompatibilityInfo) newInstance(CompatibilityInfo.class);
+			setFloatField(compatInfo, "applicationScale", resources.hashCode());
+			// Dreamland changed: inline createResourcesKey for API 24+
+			resourcesKey = newInstance(CLASS_RESOURCES_KEY, resDir, null, null, null, Display.DEFAULT_DISPLAY, null, compatInfo);
+		} else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.M) {
+			resourcesKey = createResourcesKeyM(resDir, resources.hashCode());
+		} else {
 //		} else if (Build.VERSION.SDK_INT >= 19) {
-//			resourcesKey = createResourcesKey(resDir, Display.DEFAULT_DISPLAY, null, resources.hashCode(), null);
+			resourcesKey = createResourcesKeyL(resDir, resources.hashCode());
 //		} else if (Build.VERSION.SDK_INT >= 17) {
 //			resourcesKey = createResourcesKey(resDir, Display.DEFAULT_DISPLAY, null, resources.hashCode());
 //		} else {
 //			resourcesKey = createResourcesKey(resDir, resources.hashCode());
-//		}
-
-		CompatibilityInfo compatInfo = (CompatibilityInfo) newInstance(CompatibilityInfo.class);
-		setFloatField(compatInfo, "applicationScale", resources.hashCode());
-
-		// Dreamland changed: inline createResourcesKey
-//		Object resourcesKey = createResourcesKey(resDir, null, null, null, Display.DEFAULT_DISPLAY, null, compatInfo);
-		Object resourcesKey;
-		try {
-			resourcesKey = newInstance(CLASS_RESOURCES_KEY, resDir, null, null, null, Display.DEFAULT_DISPLAY, null, compatInfo);
-		} catch (Throwable e) {
-			XposedBridge.log(e);
-			return;
 		}
 
 		// Dreamland changed: remove useless judgments

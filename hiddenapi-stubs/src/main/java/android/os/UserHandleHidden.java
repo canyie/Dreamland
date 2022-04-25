@@ -8,6 +8,7 @@ import dev.rikka.tools.refine.RefineAs;
 @RefineAs(UserHandle.class)
 public final class UserHandleHidden {
     public static final int USER_ALL = -1;
+    // In case to prevent constant folding optimization from executing by compiler
     public static final UserHandleHidden ALL = new UserHandleHidden(USER_ALL);
 
     private UserHandleHidden(int h) {

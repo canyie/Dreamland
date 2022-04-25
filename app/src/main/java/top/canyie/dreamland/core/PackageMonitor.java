@@ -80,7 +80,7 @@ public class PackageMonitor extends BroadcastReceiver {
     static final class T extends Thread {
         private Context context;
 
-        T(Context context) {
+        T (Context context) {
             super("Dreamland-PackageMonitor");
             this.context = context;
             setDaemon(true);

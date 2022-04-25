@@ -172,7 +172,7 @@ public class XResources extends XResourcesSuperClass {
 //			pkgInfo = PackageParser.parsePackageLite(resDir, 0);
 //		}
 
-		PackageParser.PackageLite pkgInfo = null;
+		PackageParser.PackageLite pkgInfo;
 		try {
 			pkgInfo = PackageParser.parsePackageLite(new File(resDir), 0);
 		} catch (PackageParserException e) {
@@ -251,9 +251,8 @@ public class XResources extends XResourcesSuperClass {
 				XMLInstanceDetails details = (XMLInstanceDetails) param.getObjectExtra(EXTRA_XML_INSTANCE_DETAILS);
 				if (details != null) {
 					LayoutInflatedParam liparam = new LayoutInflatedParam(details.callbacks);
-					// Dreamland changed: Remove useless judgments
-//					ViewGroup group = (ViewGroup) param.args[(Build.VERSION.SDK_INT < 23) ? 1 : 2];
-					ViewGroup group = (ViewGroup) param.args[2];
+					ViewGroup group = (ViewGroup) param.args[Build.VERSION.SDK_INT < Build.VERSION_CODES.M
+							? 1 : 2];
 					liparam.view = group.getChildAt(group.getChildCount() - 1);
 					liparam.resNames = details.resNames;
 					liparam.variant = details.variant;
@@ -268,14 +267,13 @@ public class XResources extends XResourcesSuperClass {
 //			findAndHookMethod(LayoutInflater.class, "parseInclude", XmlPullParser.class, View.class,
 //					AttributeSet.class, parseIncludeHook);
 //		} else if (Build.VERSION.SDK_INT < 23) {
-//			findAndHookMethod(LayoutInflater.class, "parseInclude", XmlPullParser.class, View.class,
-//					AttributeSet.class, boolean.class, parseIncludeHook);
-//		} else {
-//			findAndHookMethod(LayoutInflater.class, "parseInclude", XmlPullParser.class, Context.class,
-//					View.class, AttributeSet.class, parseIncludeHook);
-//		}
-		findAndHookMethod(LayoutInflater.class, "parseInclude", XmlPullParser.class, Context.class,
-					View.class, AttributeSet.class, parseIncludeHook);
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+			findAndHookMethod(LayoutInflater.class, "parseInclude", XmlPullParser.class,
+					View.class, AttributeSet.class, boolean.class, parseIncludeHook);
+		} else {
+			findAndHookMethod(LayoutInflater.class, "parseInclude", XmlPullParser.class,
+					Context.class, View.class, AttributeSet.class, parseIncludeHook);
+		}
 	}
 
 	/**
@@ -813,7 +811,7 @@ public class XResources extends XResourcesSuperClass {
 		}
 	}
 
-	// Dreamland changed: remove support for CM12 (it based on android 5 and not supported)
+	// TODO: add support for CM12 getDrawable
 //	/** @hide */
 //	@Override
 //	public Drawable getDrawable(int id, Theme theme, boolean supportComposedIcons) throws NotFoundException {
@@ -892,7 +890,7 @@ public class XResources extends XResourcesSuperClass {
 		}
 	}
 
-	// Dreamland changed: remove support for CM12 (it based on android 5 and not supported)
+	// TODO: add support for CM12
 //	/** @hide */
 //	@Override
 //	public Drawable getDrawableForDensity(int id, int density, Theme theme, boolean supportComposedIcons) throws NotFoundException {
