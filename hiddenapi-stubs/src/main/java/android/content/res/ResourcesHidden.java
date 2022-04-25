@@ -1,7 +1,9 @@
 package android.content.res;
 
+import android.annotation.TargetApi;
 import android.graphics.Movie;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 
@@ -85,11 +87,10 @@ public class ResourcesHidden {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
-	// Dreamland changed: remove support for CM12 (it based on android 5 and not supported)
-//	/** Since SDK21, CM12 */
-//	public Drawable getDrawable(int id, Theme theme, boolean supportComposedIcons) throws NotFoundException {
-//		throw new UnsupportedOperationException("Stub!");
-//	}
+	/** Since SDK21, CM12 */
+	public Drawable getDrawable(int id, Theme theme, boolean supportComposedIcons) throws NotFoundException {
+		throw new UnsupportedOperationException("Stub!");
+	}
 
 	public Drawable getDrawableForDensity(int id, int density) throws NotFoundException {
 		throw new UnsupportedOperationException("Stub!");
@@ -100,11 +101,10 @@ public class ResourcesHidden {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
-	// Dreamland changed: remove support for CM12 (it based on android 5 and not supported)
-//	/** Since SDK21, CM12 */
-//	public Drawable getDrawableForDensity(int id, int density, Theme theme, boolean supportComposedIcons) {
-//		throw new UnsupportedOperationException("Stub!");
-//	}
+	/** Since SDK21, CM12 */
+	public Drawable getDrawableForDensity(int id, int density, Theme theme, boolean supportComposedIcons) {
+		throw new UnsupportedOperationException("Stub!");
+	}
 
 	/** Since SDK21 */
 	public float getFloat(int id) {
@@ -207,11 +207,11 @@ public class ResourcesHidden {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
-	public ResourcesImpl getImpl() {
+	@TargetApi(Build.VERSION_CODES.N) public ResourcesImpl getImpl() {
 		throw new UnsupportedOperationException("Stub!");
 	}
 
-	public void setImpl(ResourcesImpl impl) {
+	@TargetApi(Build.VERSION_CODES.N) public void setImpl(ResourcesImpl impl) {
 		throw new UnsupportedOperationException("Stub!");
 	}
 }

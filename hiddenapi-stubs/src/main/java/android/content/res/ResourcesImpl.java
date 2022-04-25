@@ -1,7 +1,10 @@
 package android.content.res;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+
 /**
  * @author canyie
  */
-public class ResourcesImpl {
+@TargetApi(Build.VERSION_CODES.N) public class ResourcesImpl {
 }
