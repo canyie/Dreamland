@@ -42,6 +42,8 @@ if [ "$ZYGISK_ENABLED" = "1" ] || [ -d "$MAGISK_TMP/.magisk/zygisk" ]; then
 else
   ui_print "- $ALERT_RIRU_FLAVOR"
   MAGISK_CURRENT_RIRU_MODULE_PATH=$MAGISK_TMP/.magisk/modules/riru-core
+  # Temporarily support for KernelSU
+  [ "$KSU" = "true" ] && MAGISK_CURRENT_RIRU_MODULE_PATH="/data/adb/ksu/modules/riru-core"
 
   if [ -f $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh ]; then
     # Riru V24+, api version is provided in util_functions.sh
