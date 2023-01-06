@@ -86,4 +86,3 @@ else
   WARN_MANAGER_NOT_INSTALLED_2="You cannot manage Dreamland configurations"
   WARN_PLEASE_INSTALL_NEW_MANAGER="Please install new Dreamland Manager at https://github.com/canyie/DreamlandManager/releases"
 fi
-

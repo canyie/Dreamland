@@ -4,7 +4,7 @@
 
 ## Introduction
 Dreamland is a Xposed framework implementation, you can use it to use Xposed modules.
-- Supports Android 7.0~**12**
+- Supports Android 5.0~**13**
 - Low invasiveness
 - For hooking third apps, only requires restart the target app, not the device
 - Strictly restrict modules, you can choose which apps need to load which modules
