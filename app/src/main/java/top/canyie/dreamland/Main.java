@@ -261,7 +261,7 @@ public final class Main {
                 final var called = new boolean[] { false };
                 var hook = new MethodHook() {
                     @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
-                        // Both systemMain() and handleSystemServerProcess() are using this callback
+                        // Both systemMain() and handleSystemServerProcess() use this callback
                         if (called[0]) return;
                         called[0] = true;
                         dms.onSystemServerHookCalled();

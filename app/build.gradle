@@ -60,10 +60,9 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
     compileOnly 'androidx.annotation:annotation:1.6.0'
-    // The latest pine not published to online repo yet, just direct use aar
-    //implementation 'top.canyie.pine:core:0.2.5'
-    //implementation 'top.canyie.pine:xposed:0.0.8'
-    //implementation 'top.canyie.pine:enhances:0.0.1'
+    implementation 'top.canyie.pine:core:0.2.8'
+    implementation 'top.canyie.pine:xposed:0.0.9'
+    implementation 'top.canyie.pine:enhances:0.0.4'
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'dev.rikka.tools.refine:runtime:4.3.0'
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
