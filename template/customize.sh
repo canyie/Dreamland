@@ -42,10 +42,7 @@ if [ "$ZYGISK_ENABLED" = "1" ] || [ -d "$MAGISK_TMP/.magisk/zygisk" ] || mount |
   ui_print "- $ALERT_ZYGISK_FLAVOR"
 else
   ui_print "- $ALERT_RIRU_FLAVOR"
-  MAGISK_CURRENT_RIRU_MODULE_PATH=$MAGISK_TMP/.magisk/modules/riru-core
-  # Temporarily support for KernelSU
-  [ "$KSU" = "true" ] && MAGISK_CURRENT_RIRU_MODULE_PATH="/data/adb/ksu/modules/riru-core"
-
+  MAGISK_CURRENT_RIRU_MODULE_PATH="/data/adb/modules/riru-core"
   if [ -f $MAGISK_CURRENT_RIRU_MODULE_PATH/util_functions.sh ]; then
     # Riru V24+, api version is provided in util_functions.sh
     # I don't like this, but I can only follow this change
