@@ -1,11 +1,10 @@
 apply plugin: 'com.android.application'
-apply plugin: 'dev.rikka.tools.refine.gradle-plugin'
+apply plugin: 'dev.rikka.tools.refine'
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-
+    compileSdk rootProject.ext.compileSdk
     ndkVersion rootProject.ext.ndkVersion
+    namespace "top.canyie.dreamland"
 
     defaultConfig {
         applicationId "top.canyie.dreamland"
@@ -47,24 +46,26 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.18.1"
+            version "3.22.1"
         }
     }
 
     buildFeatures {
         prefab true
+        aidl true
+        buildConfig true
     }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-    implementation 'androidx.annotation:annotation:1.1.0'
+    compileOnly 'androidx.annotation:annotation:1.6.0'
     // The latest pine not published to online repo yet, just direct use aar
     //implementation 'top.canyie.pine:core:0.2.5'
     //implementation 'top.canyie.pine:xposed:0.0.8'
     //implementation 'top.canyie.pine:enhances:0.0.1'
-    implementation 'com.google.code.gson:gson:2.8.6'
-    implementation 'dev.rikka.tools.refine:runtime:3.0.3'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'dev.rikka.tools.refine:runtime:4.3.0'
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
     implementation "io.github.vvb2060.ndk:dobby:1.2"
     compileOnly project(':hiddenapi-stubs')
@@ -99,7 +100,8 @@ afterEvaluate {
     android.applicationVariants.forEach { variant ->
         def variantCapped = variant.name.capitalize()
         def variantLowered = variant.name.toLowerCase()
-        def zipName = "dreamland-${moduleProp['versionCode']}-${variantLowered}.zip"
+        def zipBaseName = "dreamland-${moduleProp['versionCode']}-${variantLowered}"
+        def zipName = "${zipBaseName}.zip"
 
         def templateTask = task("copyMagiskTemplate${variantCapped}", type: Copy) {
             dependsOn("assemble$variantCapped")
@@ -153,8 +155,8 @@ afterEvaluate {
         def zipTask = task("zipMagiskFiles${variantCapped}", type: Zip) {
             dependsOn("jarClassesDex$variantCapped")
             from file(tempTemplatePath)
-            destinationDir file(releasePath)
-            archiveName zipName
+            destinationDirectory = layout.buildDirectory.dir(releasePath)
+            archiveBaseName = zipBaseName
             outputs.upToDateWhen { templateTask.state.upToDate && nativeTask.state.upToDate && jarTask.state.upToDate }
         }
 

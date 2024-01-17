@@ -1,8 +1,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdk
+    namespace 'top.canyie.dreamland.hiddenapi'
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
@@ -17,15 +17,15 @@ android {
 }
 
 dependencies {
-    def refinePluginVersion = '3.0.3'
+    def refinePluginVersion = '4.3.0'
     annotationProcessor "dev.rikka.tools.refine:annotation-processor:$refinePluginVersion"
     compileOnly "dev.rikka.tools.refine:annotation:$refinePluginVersion"
 }
 
 task jarStubApis(type: Jar, dependsOn: build) {
-    baseName 'hiddenapis-stub'
+    archiveBaseName = 'hiddenapis-stub'
     from("$projectDir/build/intermediates/javac/release/classes/")
-    destinationDir file("$rootDir/app/lib/")
+    destinationDirectory = layout.buildDirectory.dir("$rootDir/app/lib/")
     exclude 'BuildConfig.class', 'R.class'
     exclude { it.name.startsWith('R$') }
 }
