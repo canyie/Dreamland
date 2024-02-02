@@ -33,14 +33,14 @@ android {
         }
 
         release {
-            minifyEnabled false // TODO: Enable minify
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     externalNativeBuild {
@@ -84,6 +84,7 @@ def moduleProp = [
         api: rootProject.ext.riruApiVersion
 ]
 
+def adb = android.adbExecutable
 def tempPath = "$buildDir/intermediates/magisk"
 def tempTemplatePath = "$tempPath/template"
 def localDir = "$tempPath/local"
@@ -99,10 +100,10 @@ afterEvaluate {
     android.applicationVariants.forEach { variant ->
         def variantCapped = variant.name.capitalize()
         def variantLowered = variant.name.toLowerCase()
-        def zipBaseName = "dreamland-${moduleProp['versionCode']}-${variantLowered}"
-        def zipName = "${zipBaseName}.zip"
+        def basename = "dreamland-${moduleProp['versionCode']}-${variantLowered}"
+        def outZip = "$releasePath/${basename}.zip"
 
-        def templateTask = task("copyMagiskTemplate${variantCapped}", type: Copy) {
+        def templateTask = tasks.register("copyMagiskTemplate${variantCapped}", Copy) {
             dependsOn("assemble$variantCapped")
             from file("$rootDir/template")
             into file(tempTemplatePath)
@@ -120,7 +121,7 @@ afterEvaluate {
             }
         }
 
-        def nativeTask = task("copyNativeLibs${variantCapped}") {
+        def nativeTask = tasks.register("copyNativeLibs${variantCapped}") {
             dependsOn("copyMagiskTemplate$variantCapped")
             def stripTask = tasks.findByName("strip${variantCapped}DebugSymbols")
             doLast {
@@ -137,12 +138,15 @@ afterEvaluate {
             outputs.upToDateWhen { stripTask.state.upToDate && file(nativeDir).exists() }
         }
 
-        def jarTask = task("jarClassesDex${variantCapped}") {
+        def jarTask = tasks.register("jarClassesDex${variantCapped}") {
             dependsOn("copyNativeLibs$variantCapped")
-            def mergeDexTask = tasks.findByName("mergeDex${variantCapped}")
+            def mergeDexTask = tasks.findByName("minifyReleaseWithR8")
             doLast {
+                def dex = variantLowered == 'release'
+                        ? tasks.findByName('minifyReleaseWithR8').outputs.files.filter { it.path.contains('minifyReleaseWithR8') }
+                        : tasks.findByName('mergeDexDebug').outputs.files
                 copy {
-                    from mergeDexTask.outputs.files
+                    from dex
                     into file(jarOutputDir)
                     rename 'classes.dex', 'dreamland.jar'
                 }
@@ -151,17 +155,72 @@ afterEvaluate {
             outputs.upToDateWhen { mergeDexTask.state.upToDate && file(jarOutputPath).exists() }
         }
 
-        def zipTask = task("zipMagiskFiles${variantCapped}", type: Zip) {
+        def zipTask = tasks.register("zipMagiskFiles${variantCapped}", Zip) {
             dependsOn("jarClassesDex$variantCapped")
             from file(tempTemplatePath)
             destinationDirectory = layout.buildDirectory.dir(releasePath)
-            archiveBaseName = zipBaseName
-            outputs.upToDateWhen { templateTask.state.upToDate && nativeTask.state.upToDate && jarTask.state.upToDate }
+            archiveBaseName = basename
+            outputs.upToDateWhen {
+                templateTask.get().state.upToDate
+                        && nativeTask.get().state.upToDate
+                        && jarTask.get().state.upToDate
+            }
         }
 
-        task("assembleMagisk${variantCapped}") {
+        tasks.register("assembleMagisk${variantCapped}") {
             dependsOn("zipMagiskFiles${variantCapped}")
-            outputs.upToDateWhen { zipTask.state.upToDate }
+            doLast {
+                println "Artifacts are saved to $outZip"
+            }
+            outputs.upToDateWhen { zipTask.get().state.upToDate }
         }
+
+        tasks.register("assembleAndFlashMagisk${variantCapped}") {
+            dependsOn "assembleMagisk${variantCapped}"
+            doLast {
+                exec { execSpec ->
+                    executable adb
+                    args "shell", "rm", "-f", "/data/local/tmp/${basename}.zip"
+                }
+
+                exec { execSpec ->
+                    executable adb
+                    args "push", "$outZip", "/data/local/tmp/${basename}.zip"
+                }
+
+                exec { execSpec ->
+                    executable adb
+                    args "shell", "su", "-M", "-c", "magisk --install-module /data/local/tmp/${basename}.zip"
+                }
+            }
+            outputs.upToDateWhen { false }
+        }
+
+        tasks.register("assembleAndFlashMagisk${variantCapped}AndReboot", Exec) {
+            dependsOn "assembleAndFlashMagisk${variantCapped}"
+            doFirst {
+                commandLine adb, "shell", "svc power reboot || reboot"
+            }
+        }
+    }
+}
+
+tasks.register('rebootSafemode', Exec) {
+    doFirst {
+        exec { execSpec ->
+            executable adb
+            args "shell", "su", "-c", "setprop", "persist.sys.safemode", "1"
+        }
+        commandLine adb, "reboot"
+    }
+}
+
+tasks.register('invaildateReboot', Exec) {
+    doFirst {
+        exec { execSpec ->
+            executable adb
+            args "shell", "su", "-c", "touch", "/data/adb/modules/yiguan/disable"
+        }
+        commandLine adb, "reboot"
     }
 }

@@ -12,9 +12,6 @@ import android.content.res.XResources;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
-import android.os.RemoteException;
-import android.os.SystemProperties;
-import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Keep;
