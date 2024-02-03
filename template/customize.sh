@@ -36,7 +36,17 @@ MAGISK_TMP=$(magisk --path) || MAGISK_TMP="/sbin"
 
 # "ZYGISK_ENABLED" is not an API but exported unexpectedly when installing from Magisk app
 # Magisk doesn't provide an API to detect if Zygisk is working, so the only way is...
-if [ "$ZYGISK_ENABLED" = "1" ] || [ -d "$MAGISK_TMP/.magisk/zygisk" ] || mount | grep -q libzygisk.so; then
+
+# Detect old legacy LD_PRELOAD zygisk
+[ -d "$MAGISK_TMP/.magisk/zygisk" ] && ZYGISK_ENABLED=1
+
+# Detect new native bridge based zygisk
+mount | grep -q libzygisk.so && ZYGISK_ENABLED=1
+
+# Detect Zygisk Next
+[ -d "/data/adb/modules/zygisksu" ] && ! [ -f "/data/adb/modules/zygisksu/disable" ] && ZYGISK_ENABLED=1
+
+if [ "$ZYGISK_ENABLED" = "1" ]; then
   [ "$MAGISK_VER_CODE" -lt 24000 ] && abort "! $ERR_ZYGISK_REQUIRES_24"
   FLAVOR="zygisk"
   ui_print "- $ALERT_ZYGISK_FLAVOR"
