@@ -10,7 +10,7 @@
 namespace dreamland {
     class Flavor {
     public:
-        static void OnModuleLoaded(bool preload);
+        static void OnModuleLoaded(bool zygote);
 
         static bool IsDisabled();
 

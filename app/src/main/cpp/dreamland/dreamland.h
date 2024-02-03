@@ -85,7 +85,7 @@ namespace dreamland {
         jmethodID onAppProcessStart;
 
         static constexpr const char* kBaseDir = "/data/misc/dreamland/";
-        static constexpr const char* kCoreJarFile = "/system/framework/dreamland.jar";
+        static constexpr const char* kCoreJarFile = "/data/misc/dreamland/dreamland.jar";
         static constexpr const char* kDisableFile = "/data/misc/dreamland/disable";
         DISALLOW_COPY_AND_ASSIGN(Dreamland);
     };

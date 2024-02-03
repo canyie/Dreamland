@@ -99,7 +99,8 @@ fi
 
 ui_print "- $ALERT_EXTRACT_MODULE_FILES"
 unzip -o "$ZIPFILE" module.prop uninstall.sh post-fs-data.sh service.sh sepolicy.rule system.prop -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_MODULE_FILES $?"
-unzip -o "$ZIPFILE" 'system/*' 'riru/*' -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_SYSTEM_FOLDER $?"
+unzip -o "$ZIPFILE" 'dreamland.jar' 'riru/*' -d "$MODPATH" >&2 || abort "! $ERR_EXTRACT_SYSTEM_FOLDER $?"
+mv -f "$MODPATH/dreamland.jar" "$DREAMLAND_PATH" || abort "! $ERR_EXTRACT_SYSTEM_FOLDER $?"
 
 if [ "$IS64BIT" = "false" ]; then
   ui_print "- $ALERT_REMOVE_LIB64"
@@ -110,6 +111,7 @@ ui_print "- $ALERT_FLAVOR_SPECIFC"
 if [ "$FLAVOR" = "riru" ]; then
   if [ "$RIRU_API" -lt 25 ]; then
     ui_print "- $ALERT_OLD_RIRU $RIRU_API"
+    mkdir "$MODPATH/system/"
     mv -f "$MODPATH/riru/lib" "$MODPATH/system/"
     [ -d "$MODPATH/riru/lib64" ] && mv -f "$MODPATH/riru/lib64" "$MODPATH/system/" 2>&1
     rm -rf "$MODPATH/riru"
@@ -117,7 +119,7 @@ if [ "$FLAVOR" = "riru" ]; then
     cp -f "$MODPATH/module.prop" "$RIRU_MODULE_PATH/module.prop"
   else
     # Riru v25+, user may upgrade from old module without uninstall
-    # Remove the Riru v22's module path to make sure riru knews we're a new module
+    # Remove the Riru v22's module path to make sure riru knows we're a new module
     RIRU_22_MODULE_PATH="$RIRU_NEW_PATH/modules/$RIRU_MODULE_ID"
     ui_print "- $ALERT_REMOVE_OLD_FOR_NEW_RIRU"
     rm -rf "$RIRU_22_MODULE_PATH"

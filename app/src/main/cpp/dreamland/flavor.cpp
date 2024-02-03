@@ -10,20 +10,20 @@ using namespace dreamland;
 
 static bool disabled = false;
 
-void Flavor::OnModuleLoaded(bool preload) {
-    // preload == false means the flavor is Zygisk, which will call OnModuleLoaded() from app process
+void Flavor::OnModuleLoaded(bool zygote) {
+    // zygote == false means the flavor is Zygisk, which will call OnModuleLoaded() from app process
     // rather than zygote, apps can read logs printed by their processes so this can be detected
-    if (preload) LOGI("Welcome to Dreamland %s (%d)!", Dreamland::VERSION_NAME, Dreamland::VERSION);
+    if (zygote) LOGI("Welcome to Dreamland %s (%d)!", Dreamland::VERSION_NAME, Dreamland::VERSION);
     disabled = Dreamland::ShouldDisable();
     if (UNLIKELY(disabled)) {
-        if (preload) LOGW("Dreamland framework should be disabled, do nothing.");
+        if (zygote) LOGW("Dreamland framework should be disabled, do nothing.");
         return;
     }
     Android::Initialize();
     int api_level = Android::version;
-    if (preload) LOGI("Android Api Level %d", api_level);
+    if (zygote) LOGI("Android Api Level %d", api_level);
     PineSetAndroidVersion(api_level);
-    Dreamland::Prepare(preload);
+    Dreamland::Prepare(true);
 }
 
 bool Flavor::IsDisabled() {
