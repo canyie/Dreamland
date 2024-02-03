@@ -10,19 +10,21 @@ pool:
   vmImage: 'macos-latest'
 
 steps:
-  - task: Gradle@2
+  - task: Gradle@3
     inputs:
       workingDirectory: ''
       gradleWrapperFile: 'gradlew'
       gradleOptions: '-Xmx3072m'
       javaHomeOption: 'JDKVersion'
-      jdkVersionOption: '1.11'
+      jdkVersionOption: '1.17'
       publishJUnitResults: false
-      tasks: 'assembleMagiskDebug'
+      tasks: 'assembleMagiskDebug assembleMagiskRelease'
 
   - task: CopyFiles@2
     inputs: 
-      contents: '**/build/outputs/magisk/dreamland-**.zip'
+      contents: |
+        '**/build/outputs/magisk/dreamland-**.zip'
+        '**/build/outputs/mapping/**/**.txt'
       targetFolder: '$(build.artifactStagingDirectory)'
       cleanTargetFolder: true
       flattenFolders: true
@@ -30,7 +32,7 @@ steps:
   - task: PublishBuildArtifacts@1
     inputs:
       pathToPublish: '$(build.artifactStagingDirectory)'
-      artifactName: 'magisk-dreamland-ci.zip'
+      artifactName: 'dreamland-$(build.buildId).zip'
       artifactType: 'container'
 
 pr: none
