@@ -63,7 +63,7 @@ dependencies {
     implementation 'top.canyie.pine:core:0.2.8'
     implementation 'top.canyie.pine:xposed:0.0.9'
     implementation 'top.canyie.pine:enhances:0.0.4'
-    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'dev.rikka.tools.refine:runtime:4.3.0'
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
     implementation "io.github.vvb2060.ndk:dobby:1.2"
@@ -139,11 +139,13 @@ afterEvaluate {
 
         def jarTask = tasks.register("jarClassesDex${variantCapped}") {
             dependsOn("copyNativeLibs$variantCapped")
-            def mergeDexTask = tasks.findByName("minifyReleaseWithR8")
+            def mergeDexTask = variantLowered == 'release'
+                    ? tasks.findByName("minifyReleaseWithR8")
+                    : tasks.findByName('mergeDexDebug')
             doLast {
                 def dex = variantLowered == 'release'
-                        ? tasks.findByName('minifyReleaseWithR8').outputs.files.filter { it.path.contains('minifyReleaseWithR8') }
-                        : tasks.findByName('mergeDexDebug').outputs.files
+                        ? mergeDexTask.outputs.files.filter { it.path.contains('minifyReleaseWithR8') }
+                        : mergeDexTask.outputs.files
                 copy {
                     from dex
                     into file(jarOutputDir)
@@ -218,7 +220,7 @@ tasks.register('invaildateReboot', Exec) {
     doFirst {
         exec { execSpec ->
             executable adb
-            args "shell", "su", "-c", "touch", "/data/adb/modules/yiguan/disable"
+            args "shell", "su", "-c", "touch", "/data/adb/modules/riru_dreamland/disable"
         }
         commandLine adb, "reboot"
     }
