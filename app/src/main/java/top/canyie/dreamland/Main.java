@@ -104,6 +104,7 @@ public final class Main {
         Class<? extends Resources> resClass = res.getClass();
         Class<?> taClass = TypedArray.class;
         try {
+            @SuppressLint("DiscouragedApi")
             TypedArray ta = res.obtainTypedArray(res.getIdentifier("preloaded_drawables", "array", "android"));
             taClass = ta.getClass();
             ta.recycle();
