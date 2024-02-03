@@ -22,11 +22,16 @@ steps:
 
   - task: CopyFiles@2
     inputs: 
-      contents: |
-        '**/build/outputs/magisk/dreamland-**.zip'
-        '**/build/outputs/mapping/**/**.txt'
+      contents: '**/build/outputs/magisk/dreamland-**.zip'
       targetFolder: '$(build.artifactStagingDirectory)'
       cleanTargetFolder: true
+      flattenFolders: true
+
+  - task: CopyFiles@2
+    inputs:
+      contents: '**/build/outputs/mapping/release/**.txt'
+      targetFolder: '$(build.artifactStagingDirectory)'
+      cleanTargetFolder: false
       flattenFolders: true
   
   - task: PublishBuildArtifacts@1
