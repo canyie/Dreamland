@@ -85,13 +85,7 @@ def moduleProp = [
 ]
 
 def adb = android.adbExecutable
-def tempPath = "$buildDir/intermediates/magisk"
-def tempTemplatePath = "$tempPath/template"
-def localDir = "$tempPath/local"
 def jarName = 'dreamland.jar'
-def jarOutputDir = "$tempTemplatePath/"
-def jarOutputPath = "$jarOutputDir/$jarName"
-def nativeDir = "$tempTemplatePath/riru/"
 def nativeAbiToSystemDirMap = ['armeabi-v7a': 'lib', 'arm64-v8a': 'lib64']
 def nativeLibName = 'libriru_dreamland.so'
 def releasePath = "$buildDir/outputs/magisk"
@@ -100,6 +94,11 @@ afterEvaluate {
     android.applicationVariants.forEach { variant ->
         def variantCapped = variant.name.capitalize()
         def variantLowered = variant.name.toLowerCase()
+        def tempPath = "$buildDir/intermediates/magisk/${variantLowered}"
+        def tempTemplatePath = "$tempPath/template"
+        def jarOutputDir = "$tempTemplatePath/"
+        def jarOutputPath = "$jarOutputDir/$jarName"
+        def nativeDir = "$tempTemplatePath/riru/"
         def basename = "dreamland-${moduleProp['versionCode']}-${variantLowered}"
         def outZip = "$releasePath/${basename}.zip"
 
