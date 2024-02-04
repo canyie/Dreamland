@@ -54,7 +54,6 @@ public final class Dreamland {
     public static final int VERSION = BuildConfig.VERSION_CODE;
     public static final String VERSION_NAME = BuildConfig.VERSION_NAME;
     public static final String MANAGER_PACKAGE_NAME = "top.canyie.dreamland.manager";
-    public static final String OLD_MANAGER_PACKAGE_NAME = "com.canyie.dreamland.manager";
     public static final File BASE_DIR = new File("/data/misc/dreamland/");
     private static final String XRESOURCES_CONFLICTING_PACKAGE = "com.sygic.aura";
 
@@ -88,24 +87,6 @@ public final class Dreamland {
                 Log.e(TAG, "Failed to init manager", e);
             }
             return; // Don't load xposed modules in manager process.
-        } else if (OLD_MANAGER_PACKAGE_NAME.equals(packageName)) {
-            Log.w(TAG, "Detected old dreamland manager");
-            try {
-                Class<?> mainActivityClass = classLoader.loadClass("com.canyie.dreamland.manager.ui.activities.MainActivity");
-                XposedHelpers.findAndHookMethod(Activity.class, "onCreate", Bundle.class,
-                        new XC_MethodHook() {
-                                @Override protected void afterHookedMethod(MethodHookParam param) {
-                                    if (param.thisObject.getClass() != mainActivityClass) return;
-                                    String msg = "The Dreamland manager is obsolete " +
-                                            "and not compatible with current framework version! \n" +
-                                            "Please upgrade it!";
-                                    Toast.makeText((Context) param.thisObject, msg, Toast.LENGTH_SHORT).show();
-                                }
-                            });
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to hook old dreamland manager", e);
-            }
-            return;
         }
 
         if (modules == null) {
