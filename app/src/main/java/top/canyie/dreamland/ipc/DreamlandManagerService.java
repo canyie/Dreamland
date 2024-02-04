@@ -107,11 +107,11 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
                 : pm.getApplicationInfo(packageName, (int) 0, UserHandleHidden.getCallingUserId());
         if (appInfo == null) return null;
         String[] splitSourceDirs = appInfo.splitSourceDirs;
-        if (splitSourceDirs == null) return appInfo.sourceDir;
-
-        String[] apks = Arrays.copyOf(splitSourceDirs, splitSourceDirs.length + 1);
-        apks[splitSourceDirs.length] = appInfo.sourceDir;
-        return Arrays.stream(apks).filter(ModuleManager::isModuleValid).findFirst().orElse(null);
+        if (splitSourceDirs != null)
+            for (String apk : splitSourceDirs)
+                if (ModuleManager.isModuleValid(apk))
+                    return apk;
+        return appInfo.sourceDir;
     }
 
     public void onSystemServerHookCalled() {
