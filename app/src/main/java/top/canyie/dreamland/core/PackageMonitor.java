@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
@@ -97,11 +98,22 @@ public class PackageMonitor extends BroadcastReceiver {
                 intentFilter.addAction(Intent.ACTION_PACKAGE_FULLY_REMOVED);
                 intentFilter.addDataScheme("package");
 
-                @SuppressLint("DiscouragedPrivateApi")
-                Method registerReceiverAsUser = Context.class.getDeclaredMethod("registerReceiverAsUser",
-                        BroadcastReceiver.class, UserHandle.class, IntentFilter.class, String.class, Handler.class);
-                registerReceiverAsUser.setAccessible(true);
-                registerReceiverAsUser.invoke(context, monitor, UserHandleHidden.ALL, intentFilter, null, h);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Method registerReceiverAsUser = Context.class.getDeclaredMethod("registerReceiverAsUser",
+                            BroadcastReceiver.class, UserHandle.class, IntentFilter.class,
+                            String.class, Handler.class, int.class);
+                    registerReceiverAsUser.setAccessible(true);
+                    registerReceiverAsUser.invoke(context, monitor, UserHandleHidden.ALL,
+                            intentFilter, null, h, Context.RECEIVER_NOT_EXPORTED);
+                } else {
+                    @SuppressLint("DiscouragedPrivateApi")
+                    Method registerReceiverAsUser = Context.class.getDeclaredMethod("registerReceiverAsUser",
+                            BroadcastReceiver.class, UserHandle.class, IntentFilter.class,
+                            String.class, Handler.class);
+                    registerReceiverAsUser.setAccessible(true);
+                    registerReceiverAsUser.invoke(context, monitor, UserHandleHidden.ALL,
+                            intentFilter, null, h);
+                }
 
                 context = null;
                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
