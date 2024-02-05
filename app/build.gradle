@@ -79,7 +79,7 @@ def moduleProp = [
         author: 'canyie',
         version: rootProject.ext.versionName + "_" + rootProject.ext.versionCode,
         versionCode: rootProject.ext.versionCode,
-        description: 'A third-party Xposed framework implementation, supports Android 5.0 ~ 13. Requires module \'Riru\' is installed or Zygisk is enabled. Telegram group: @DreamlandFramework, QQ group: 949888394.',
+        description: 'A third-party Xposed framework implementation, which supports Android 5.0 ~ 14. Requires module \'Riru\' is installed or Zygisk is enabled. Telegram group: @DreamlandFramework, QQ group: 949888394.',
         api: rootProject.ext.riruApiVersion
 ]
 
