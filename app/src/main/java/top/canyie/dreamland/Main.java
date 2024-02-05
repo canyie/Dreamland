@@ -26,6 +26,7 @@ import top.canyie.dreamland.core.PackageMonitor;
 import top.canyie.dreamland.ipc.BinderServiceProxy;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 import top.canyie.dreamland.ipc.DreamlandManagerService;
+import top.canyie.dreamland.ipc.ModuleInfo;
 import top.canyie.dreamland.utils.AppConstants;
 import top.canyie.dreamland.utils.RuntimeUtils;
 import top.canyie.dreamland.utils.reflect.Reflection;
@@ -264,7 +265,7 @@ public final class Main {
                         called[0] = true;
                         dms.onSystemServerHookCalled();
                         Dreamland.loadedPackages.add(AppConstants.ANDROID);
-                        String[] modules = dms.getEnabledModulesForSystemServer();
+                        ModuleInfo[] modules = dms.getEnabledModulesForSystemServer();
                         if (modules != null && modules.length != 0) {
                             ClassLoader cl = Thread.currentThread().getContextClassLoader();
                             final String packageName = AppConstants.ANDROID;

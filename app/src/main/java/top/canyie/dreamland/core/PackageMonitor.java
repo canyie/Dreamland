@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,6 +19,7 @@ import android.util.Log;
 import java.lang.reflect.Method;
 
 import top.canyie.dreamland.ipc.DreamlandManagerService;
+import top.canyie.dreamland.utils.BuildUtils;
 
 /**
  * @author canyie
@@ -54,10 +57,12 @@ public class PackageMonitor extends BroadcastReceiver {
                     return;
                 }
 
+                ApplicationInfo appInfo;
                 String modulePath;
                 try {
-                    modulePath = dm.getModulePath(packageName);
-                } catch (RemoteException e) {
+                    appInfo = context.getPackageManager().getApplicationInfo(packageName, 0);
+                    modulePath = dm.getModulePath(appInfo);
+                } catch (PackageManager.NameNotFoundException|RemoteException e) {
                     Log.e(Dreamland.TAG, "getModulePath", e);
                     return;
                 }
@@ -65,7 +70,7 @@ public class PackageMonitor extends BroadcastReceiver {
                     Log.e(Dreamland.TAG, "No valid apk found for module " + packageName);
                     return;
                 }
-                moduleManager.updateModulePath(packageName, modulePath);
+                moduleManager.updateModulePath(packageName, modulePath, appInfo.nativeLibraryDir);
                 dm.clearModuleCache();
                 Log.i(Dreamland.TAG, "Updated module info for " + packageName);
                 break;

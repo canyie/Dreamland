@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipFile;
 
+import top.canyie.dreamland.ipc.ModuleInfo;
+
 /**
  * @author canyie
  */
@@ -61,13 +63,13 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
         return result;
     }
 
-    public void getScopeFor(String packageName, Set<String> out) {
+    public void getScopeFor(String packageName, Set<ModuleInfo> out) {
         Map<String, ModuleInfo> map = getRealObject();
         if (map.isEmpty()) return;
         Collection<ModuleInfo> modules = map.values();
         for (ModuleInfo module : modules) {
             if (module.enabled && module.isEnabledFor(packageName))
-                out.add(module.path);
+                out.add(module);
         }
     }
 
@@ -76,13 +78,14 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
         return moduleInfo != null && moduleInfo.enabled;
     }
 
-    public void enable(String module, String path) {
+    public void enable(String module, String path, String nativeDir) {
         Map<String, ModuleInfo> map = getRealObject();
         ModuleInfo moduleInfo = map.get(module);
         if (moduleInfo == null) {
-            map.put(module, new ModuleInfo(path));
+            map.put(module, new ModuleInfo(path, nativeDir));
         } else {
             moduleInfo.path = path; // Module path maybe changed
+            moduleInfo.nativePath = nativeDir;
             moduleInfo.enabled = true;
         }
         notifyDataChanged();
@@ -96,10 +99,11 @@ public final class ModuleManager extends GsonBasedManager<ConcurrentHashMap<Stri
         }
     }
 
-    public void updateModulePath(String packageName, String path) {
+    public void updateModulePath(String packageName, String path, String nativeDir) {
         ModuleInfo moduleInfo = getRealObject().get(packageName);
         if (moduleInfo != null) {
             moduleInfo.path = path;
+            moduleInfo.nativePath = nativeDir;
             notifyDataChanged();
         }
     }

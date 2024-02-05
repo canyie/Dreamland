@@ -50,11 +50,11 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private final ModuleManager mModuleManager;
 
     private volatile String[] mEnabledAppCache;
-    private final LruCache<String, String[]> mEnabledModuleCache = new LruCache<>(128) {
-        @Override protected String[] create(String key) {
-            HashSet<String> set = new HashSet<>();
+    private final LruCache<String, ModuleInfo[]> mEnabledModuleCache = new LruCache<>(128) {
+        @Override protected ModuleInfo[] create(String key) {
+            HashSet<ModuleInfo> set = new HashSet<>();
             mModuleManager.getScopeFor(key, set);
-            return set.toArray(new String[set.size()]);
+            return set.toArray(new ModuleInfo[set.size()]);
         }
     };
     private volatile String[] mAllEnabledModuleCache;
@@ -101,10 +101,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         pm = IPackageManager.Stub.asInterface(service);
     }
 
-    public String getModulePath(String packageName) throws RemoteException {
-        ApplicationInfo appInfo = BuildUtils.isAtLeastT()
-                ? pm.getApplicationInfo(packageName, 0L, UserHandleHidden.getCallingUserId())
-                : pm.getApplicationInfo(packageName, (int) 0, UserHandleHidden.getCallingUserId());
+    public String getModulePath(ApplicationInfo appInfo) throws RemoteException {
         if (appInfo == null) return null;
         String[] splitSourceDirs = appInfo.splitSourceDirs;
         if (splitSourceDirs != null)
@@ -208,7 +205,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         }
     }
 
-    @Override public String[] getEnabledModulesFor(String packageName) {
+    @Override public ModuleInfo[] getEnabledModulesFor(String packageName) {
         if (mSafeModeEnabled) return null;
 
         if (Dreamland.MANAGER_PACKAGE_NAME.equals(packageName)) return null;
@@ -219,7 +216,7 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
         return mEnabledModuleCache.get(packageName);
     }
 
-    public String[] getEnabledModulesForSystemServer() {
+    public ModuleInfo[] getEnabledModulesForSystemServer() {
         if (mSafeModeEnabled) return null;
         if (!(mGlobalModeEnabled || mAppManager.isEnabled(AppConstants.ANDROID))) return null;
         return mEnabledModuleCache.get(AppConstants.ANDROID);
@@ -245,12 +242,15 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     public void setModuleEnabled(String packageName, boolean enabled) throws RemoteException {
         enforceManager("setModuleEnabled");
         if (enabled) {
-            String apkPath = getModulePath(packageName);
+            ApplicationInfo appInfo = BuildUtils.isAtLeastT()
+                    ? pm.getApplicationInfo(packageName, 0L, UserHandleHidden.getCallingUserId())
+                    : pm.getApplicationInfo(packageName, (int) 0, UserHandleHidden.getCallingUserId());
+            String apkPath = getModulePath(appInfo);
             if (apkPath == null) {
                 DLog.e(TAG, "No valid apk found for module " + packageName);
                 return;
             }
-            mModuleManager.enable(packageName, apkPath);
+            mModuleManager.enable(packageName, apkPath, appInfo.nativeLibraryDir);
         } else {
             mModuleManager.disable(packageName);
         }

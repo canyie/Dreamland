@@ -9,6 +9,7 @@ import java.lang.reflect.Method;
 
 import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.ipc.IDreamlandManager;
+import top.canyie.dreamland.ipc.ModuleInfo;
 import top.canyie.dreamland.utils.reflect.Reflection;
 import top.canyie.pine.Pine;
 import top.canyie.pine.callback.MethodHook;
@@ -24,7 +25,7 @@ class GetClassLoaderHook extends MethodHook {
     private String processName;
     private ApplicationInfo appInfo;
     private boolean isFirstApp;
-    private String[] modules;
+    private ModuleInfo[] modules;
     private MethodHook.Unhook unhook;
 
     private GetClassLoaderHook() {
@@ -32,7 +33,7 @@ class GetClassLoaderHook extends MethodHook {
 
     public static void install(IDreamlandManager dm, LoadedApk loadedApk, String packageName,
                                String processName, ApplicationInfo appInfo, boolean isFirstApp) {
-        String[] modules;
+        ModuleInfo[] modules;
 
         try {
             modules = dm.getEnabledModulesFor(packageName);

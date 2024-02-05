@@ -1,6 +1,10 @@
-package top.canyie.dreamland.core;
+package top.canyie.dreamland.ipc;
+
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
@@ -12,9 +16,10 @@ import java.util.Set;
 /**
  * Created by canyie on 2019/11/12.
  */
-@Keep public final class ModuleInfo {
+@Keep public final class ModuleInfo implements Parcelable {
 //  public String name;
     public String path;
+    public String nativePath;
     public boolean enabled = true;
 
     /**
@@ -26,9 +31,24 @@ import java.util.Set;
     public ModuleInfo() {
     }
 
-    public ModuleInfo(String path) {
+    public ModuleInfo(String path, String nativePath) {
         this.path = path;
+        this.nativePath = nativePath;
     }
+
+    public static final Creator<ModuleInfo> CREATOR = new Creator<>() {
+        @Override
+        public ModuleInfo createFromParcel(Parcel in) {
+            String path = in.readString();
+            String nativePath = in.readString();
+            return new ModuleInfo(path, nativePath);
+        }
+
+        @Override
+        public ModuleInfo[] newArray(int size) {
+            return new ModuleInfo[size];
+        }
+    };
 
     public boolean isEnabledFor(String packageName) {
         return scope == null || scope.contains(packageName);
@@ -50,6 +70,15 @@ import java.util.Set;
         else
             scope.clear();
         Collections.addAll(scope, packages);
+    }
+
+    @Override public int describeContents() {
+        return 0;
+    }
+
+    @Override public void writeToParcel(@NonNull Parcel dest, int flags) {
+        dest.writeString(path);
+        dest.writeString(nativePath);
     }
 
 //    public ModuleInfo(String name, String path) {

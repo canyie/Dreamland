@@ -1,10 +1,12 @@
 // IDreamlandManager.aidl
 package top.canyie.dreamland.ipc;
 
+import top.canyie.dreamland.ipc.ModuleInfo;
+
 interface IDreamlandManager {
     int getVersion() = 0;
     boolean isEnabledFor() = 1;
-    String[] getEnabledModulesFor(String packageName) = 2;
+    ModuleInfo[] getEnabledModulesFor(String packageName) = 2;
     String[] getAllEnabledModules() = 3;
     void setModuleEnabled(String packageName, boolean enabled) = 4;
     String[] getEnabledApps() = 5;
