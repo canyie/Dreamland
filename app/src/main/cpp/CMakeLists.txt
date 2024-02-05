@@ -26,6 +26,7 @@ add_library(riru_dreamland
         dreamland/dreamland.cpp
         dreamland/android.cpp
         dreamland/resources_hook.cpp
+        dreamland/native_hook.cpp
         dreamland/binder.cpp
         dreamland/dex_loader.cpp)
 

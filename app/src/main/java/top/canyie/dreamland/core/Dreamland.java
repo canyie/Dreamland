@@ -21,9 +21,13 @@ import de.robv.android.xposed.callbacks.XC_InitPackageResources;
 import de.robv.android.xposed.callbacks.XCallback;
 import dev.rikka.tools.refine.Refine;
 import top.canyie.dreamland.BuildConfig;
+import top.canyie.dreamland.Main;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -144,6 +148,20 @@ public final class Dreamland {
                 }
 
                 var cl = new ModuleClassLoader(apk, librarySearchPath.toString(), initCL);
+
+                // According to document, native_init should be loaded before loading java hooks
+                var n = cl.findResource("assets/native_init");
+                if (n != null) {
+                    try (var nativeLibs = new BufferedReader(new InputStreamReader(n.openStream()))) {
+                        String line;
+                        while ((line = nativeLibs.readLine()) != null)
+                            if (!(line.isEmpty() || line.startsWith("#")))
+                                Main.recordNativeEntrypoint(line);
+                    } catch (IOException e) {
+                        Log.e(TAG, "Failed to open native_init of module" + apk, e);
+                    }
+                }
+
                 // Only main zygote (non-secondary zygote) will starts the system server
                 PineXposed.loadOpenedModule(apk, cl, mainZygote);
             }

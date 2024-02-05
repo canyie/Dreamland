@@ -362,4 +362,6 @@ public final class Main {
 
     @SuppressWarnings("JavaJniMissingFunction")
     private static native boolean initXResourcesNative(ClassLoader classLoader);
+    @SuppressWarnings("JavaJniMissingFunction")
+    public static native void recordNativeEntrypoint(String library);
 }

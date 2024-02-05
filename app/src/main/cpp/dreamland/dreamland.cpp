@@ -11,16 +11,16 @@
 #include <sys/stat.h>
 #include <fstream>
 #include <sstream>
+#include "binder.h"
 #include "dreamland.h"
+#include "dex_loader.h"
+#include "resources_hook.h"
+#include "native_hook.h"
 #include "../utils/log.h"
 #include "../utils/scoped_local_ref.h"
 #include "../utils/well_known_classes.h"
 #include "../utils/jni_helper.h"
 #include "../pine.h"
-#include "resources_hook.h"
-#include "binder.h"
-#include "dex_loader.h"
-
 using namespace dreamland;
 
 Dreamland* Dreamland::instance = nullptr;
@@ -146,6 +146,7 @@ bool Dreamland::PrepareJava(JNIEnv* env, bool zygote) {
 
 bool Dreamland::RegisterNatives(JNIEnv* env, jclass main_class, jobject class_loader) {
     env->RegisterNatives(main_class, gMainNativeMethods, NELEM(gMainNativeMethods));
+    NativeHook::RegisterNatives(env, main_class);
     {
         ScopedLocalRef<jclass> pine_class(env, JNIHelper::FindClassFromClassLoader(
                 env, "top.canyie.pine.Pine", class_loader));
