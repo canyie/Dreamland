@@ -97,9 +97,9 @@ namespace dreamland {
             // Do not directly hook dlopen, changing its caller will change its linker namespace
             // and cause some system libraries fail to load.
             const char* linker_path = LP_SELECT("/apex/com.android.runtime/bin/linker64",
-                                                "/apex/com.android.runtime/bin/linker_path");
+                                                "/apex/com.android.runtime/bin/linker");
             if (access(linker_path, F_OK)) {
-                linker_path = LP_SELECT("/system/bin/linker64", "/system/bin/linker_path");
+                linker_path = LP_SELECT("/system/bin/linker64", "/system/bin/linker");
             }
             ScopedElf linker(linker_path);
             void* target;
