@@ -61,7 +61,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
     compileOnly 'androidx.annotation:annotation:1.6.0'
     implementation 'top.canyie.pine:core:0.2.8'
-    implementation 'top.canyie.pine:xposed:0.0.9'
+    implementation 'top.canyie.pine:xposed:0.1.0'
     implementation 'top.canyie.pine:enhances:0.0.4'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'dev.rikka.tools.refine:runtime:4.3.0'
@@ -80,7 +80,6 @@ def moduleProp = [
         version: rootProject.ext.versionName + "_" + rootProject.ext.versionCode,
         versionCode: rootProject.ext.versionCode,
         description: 'A third-party Xposed framework implementation, supports Android 5.0 ~ 13. Requires module \'Riru\' is installed or Zygisk is enabled. Telegram group: @DreamlandFramework, QQ group: 949888394.',
-        minMagisk: rootProject.ext.minMagiskVersion,
         api: rootProject.ext.riruApiVersion
 ]
 
