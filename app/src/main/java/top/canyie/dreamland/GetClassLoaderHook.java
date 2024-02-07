@@ -6,7 +6,9 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
+import de.robv.android.xposed.XposedHelpers;
 import top.canyie.dreamland.core.Dreamland;
 import top.canyie.dreamland.ipc.IDreamlandManager;
 import top.canyie.dreamland.ipc.ModuleInfo;
@@ -18,7 +20,8 @@ import top.canyie.pine.callback.MethodHook;
  * @author canyie
  */
 class GetClassLoaderHook extends MethodHook {
-    private static final Method getClassLoader = Reflection.getMethod(LoadedApk.class, "getClassLoader");
+    private static final Method target;
+    private static final boolean hookGet;
     private IDreamlandManager dm;
     private LoadedApk loadedApk;
     private String packageName;
@@ -27,6 +30,12 @@ class GetClassLoaderHook extends MethodHook {
     private boolean isFirstApp;
     private ModuleInfo[] modules;
     private MethodHook.Unhook unhook;
+
+    static {
+        Method create = Reflection.findMethod(LoadedApk.class, "createOrUpdateClassLoaderLocked", List.class);
+        hookGet = create == null;
+        target = hookGet ? Reflection.getMethod(LoadedApk.class, "getClassLoader") : create;
+    }
 
     private GetClassLoaderHook() {
     }
@@ -56,7 +65,7 @@ class GetClassLoaderHook extends MethodHook {
         hook.isFirstApp = isFirstApp;
         hook.modules = modules;
         try {
-            hook.unhook = Pine.hook(getClassLoader, hook);
+            hook.unhook = Pine.hook(target, hook);
         } catch (Throwable e) {
             Log.e(Dreamland.TAG, "hook getClassLoader failed", e);
         }
@@ -67,7 +76,9 @@ class GetClassLoaderHook extends MethodHook {
         if (loadedApk != this.loadedApk) return;
 
         try {
-            ClassLoader classLoader = (ClassLoader) callFrame.getResult();
+            ClassLoader classLoader = (ClassLoader) (hookGet
+                    ? callFrame.getResult()
+                    : XposedHelpers.getObjectField(loadedApk, "mClassLoader"));
             Dreamland.packageReady(dm, packageName, processName, appInfo, classLoader, isFirstApp, Main.mainZygote, modules);
         } finally {
             unhook.unhook();

@@ -81,7 +81,11 @@ import java.util.Set;
         dest.writeString(nativePath);
     }
 
-//    public ModuleInfo(String name, String path) {
+    @NonNull @Override public String toString() {
+        return "ModuleInfo{path=" + path + ", nativeDir=" + nativePath + ", enabled=" + enabled + "}";
+    }
+
+    //    public ModuleInfo(String name, String path) {
 //        this.name = name;
 //        this.path = path;
 //    }
