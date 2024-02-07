@@ -220,7 +220,7 @@ public final class Dreamland {
                     try {
                         final int activityTokenIdx = getParameterIndexByType(param.method, IBinder.class);
                         activityToken = param.args[activityTokenIdx];
-                    } catch (NoSuchMethodError ignored) {
+                    } catch (NoSuchFieldError ignored) {
                         // Android S createResources()
                         activityToken = null;
                     }
