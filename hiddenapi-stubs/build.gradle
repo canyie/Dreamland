@@ -22,7 +22,8 @@ dependencies {
     compileOnly "dev.rikka.tools.refine:annotation:$refinePluginVersion"
 }
 
-task jarStubApis(type: Jar, dependsOn: build) {
+tasks.register('jarStubApis', Jar) {
+    dependsOn build
     archiveBaseName = 'hiddenapis-stub'
     from("$projectDir/build/intermediates/javac/release/classes/")
     destinationDirectory = layout.buildDirectory.dir("$rootDir/app/lib/")
