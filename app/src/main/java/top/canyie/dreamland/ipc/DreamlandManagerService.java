@@ -76,9 +76,9 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
     private DreamlandManagerService() {
         instance = this;
         mModuleManager = new ModuleManager();
-        mModuleManager.startLoad();
+        mModuleManager.loadFromDisk();
         mAppManager = new AppManager();
-        mAppManager.startLoad();
+        mAppManager.loadFromDisk();
         mSafeModeEnabled = enabled(SAFE_MODE_FILENAME);
         mGlobalModeEnabled = enabled(GLOBAL_MODE_FILENAME);
         mResourcesHookEnabled = enabled(ENABLE_RESOURCES_FILENAME);
@@ -278,8 +278,8 @@ public final class DreamlandManagerService extends IDreamlandManager.Stub {
 
     @Override public void reload() throws RemoteException {
         enforceManagerOrShell("reload");
-        mModuleManager.startLoad();
-        mAppManager.startLoad();
+        mModuleManager.loadFromDisk();
+        mAppManager.loadFromDisk();
         mSafeModeEnabled = new File(Dreamland.BASE_DIR, SAFE_MODE_FILENAME).exists();
         mGlobalModeEnabled = new File(Dreamland.BASE_DIR, GLOBAL_MODE_FILENAME).exists();
         mResourcesHookEnabled = new File(Dreamland.BASE_DIR, ENABLE_RESOURCES_FILENAME).exists();

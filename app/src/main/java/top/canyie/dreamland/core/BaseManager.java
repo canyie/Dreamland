@@ -36,11 +36,6 @@ public abstract class BaseManager<T> {
         return mBackupFile;
     }
 
-    public void startLoad() {
-        this.mLoaded = false;
-        new Thread(this::loadFromDisk, getClass().getName()  + "-load").start();
-    }
-
     @NonNull protected T getRealObject() {
         ensureDataLoaded();
         return mObject;
@@ -64,7 +59,8 @@ public abstract class BaseManager<T> {
     @Nullable protected abstract T deserialize(String str);
     @NonNull protected abstract T createEmpty();
 
-    private void loadFromDisk() {
+    public void loadFromDisk() {
+        this.mLoaded = false;
         T obj = readObjectFromDisk();
         synchronized (mLock) {
             this.mObject = obj;
