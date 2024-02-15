@@ -1,9 +1,10 @@
+project(Dreamland)
 cmake_minimum_required(VERSION 3.4.1)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(C_FLAGS "-Wall -Wextra -ffixed-x18 -fvisibility-inlines-hidden -fno-exceptions -fno-rtti -flto=thin -Wno-builtin-macro-redefined -D__FILE__=__FILE_NAME__")
+set(C_FLAGS "-Wall -Wextra -Wno-unused-parameter -fvisibility-inlines-hidden -fno-exceptions -fno-rtti -flto=thin -Wno-builtin-macro-redefined -D__FILE__=__FILE_NAME__")
 set(LINKER_FLAGS "-fuse-ld=lld -flto=thin -ffixed-x18 -Wl,--hash-style=both -Wl,--unresolved-symbols=ignore-all")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${C_FLAGS}")

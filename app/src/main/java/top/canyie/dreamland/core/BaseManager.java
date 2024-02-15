@@ -32,10 +32,6 @@ public abstract class BaseManager<T> {
         return mFile;
     }
 
-    public File getBackupFile() {
-        return mBackupFile;
-    }
-
     @NonNull protected T getRealObject() {
         ensureDataLoaded();
         return mObject;
@@ -121,6 +117,7 @@ public abstract class BaseManager<T> {
     private void backup() {
         if (mBackupFile.exists()) {
             DLog.e(TAG, "Don't backup %s: the backup file is already exists. Did the last write fail?", mFile.getAbsolutePath());
+            // noinspection ResultOfMethodCallIgnored
             mFile.delete();
             return;
         }

@@ -33,7 +33,7 @@ EXPORT int shouldSkipUid(int uid) {
     return Dreamland::ShouldSkipUid(uid) ? 1 : 0;
 }
 
-EXPORT void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint* gid_ptr,
+EXPORT void nativeForkAndSpecializePre(JNIEnv* env, jclass, jint* uid_ptr, jint*,
                                        jintArray*, jint*, jobjectArray*, jint*, jstring*,
                                        jstring*, jintArray*, jintArray*,
                                        jboolean* is_child_zygote, jstring*, jstring*, jboolean*,

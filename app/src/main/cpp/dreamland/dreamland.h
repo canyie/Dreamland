@@ -39,7 +39,7 @@ namespace dreamland {
                 return true;
             }
             if (Android::version >= Android::kO) {
-                uid_t kWebViewZygoteUid = Android::version >= Android::kP ? 1053 : 1051;
+                int kWebViewZygoteUid = Android::version >= Android::kP ? 1053 : 1051;
                 if (UNLIKELY(uid == kWebViewZygoteUid)) {
                     // WebView zygote
                     return true;
