@@ -47,6 +47,8 @@ import top.canyie.pine.xposed.PineXposed;
 
 import static top.canyie.dreamland.core.Dreamland.TAG;
 
+import org.lsposed.hiddenapibypass.HiddenApiBypass;
+
 /**
  * Created by canyie on 2019/11/12.
  */
@@ -73,11 +75,17 @@ public final class Main {
             Dreamland.disableResourcesHook = true;
         }
 
-        PineConfig.debug = true;
+        PineConfig.debug = BuildConfig.DEBUG;
         PineConfig.debuggable = false;
 
         // Don't load another .so file, all codes are included in libriru_dreamland.so
         PineConfig.libLoader = null;
+
+        // Workaround for Android 15 (VanillaIceCream) DP1
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                || (Build.VERSION.SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE && Build.VERSION.PREVIEW_SDK_INT > 0)) {
+            HiddenApiBypass.addHiddenApiExemptions("");
+        }
 
         Pine.ensureInitialized();
         Pine.setJitCompilationAllowed(false);

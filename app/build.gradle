@@ -67,6 +67,7 @@ dependencies {
     implementation 'dev.rikka.tools.refine:runtime:4.3.0'
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
     implementation "io.github.vvb2060.ndk:dobby:1.2"
+    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:4.3'
     compileOnly project(':hiddenapi-stubs')
     testImplementation 'junit:junit:4.12'
     //androidTestImplementation 'androidx.test.ext:junit:1.1.0'
