@@ -24,7 +24,7 @@ public:
     void preAppSpecialize(AppSpecializeArgs* args) override {
         skip_ = Flavor::ShouldSkip(args->is_child_zygote && *args->is_child_zygote, args->uid);
         if (!skip_)
-            Flavor::PreFork(env_, false);
+            Flavor::PreFork(env_, true);
     }
 
     void postAppSpecialize(const AppSpecializeArgs* args) override {
