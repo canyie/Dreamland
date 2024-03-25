@@ -52,25 +52,8 @@
 -keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
 -keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
 
-# Pine
--keep class top.canyie.pine.Pine {
-    public static long openElf;
-    public static long findElfSymbol;
-    public static long closeElf;
-    private static int arch;
-}
--keep class top.canyie.pine.Ruler { *; }
--keep class top.canyie.pine.Ruler$I { *; }
--keep class top.canyie.pine.entry.**Entry {
-    static *** **Bridge(...);
-}
 -keep class top.canyie.pine.enhances.PineEnhances {
     private static void onClassInit(long);
-}
-
-# Prevent R8 from removing "unused" library native methods while they're still being used
--keep class * {
-    native <methods>;
 }
 
 # Xposed APIs
